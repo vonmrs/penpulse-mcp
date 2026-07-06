@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+venv/
+ENV/
+env/
+.venv/
+
+# 配置（包含敏感信息）
+config/
+*.json
+!.example.json
+
+# 环境变量
+.env
+.env.local
+
+# 临时文件
+/tmp/
+*.log
+.DS_Store
+Thumbs.db
+
+# MCP 缓存
+.mcp/
+
+# 封面图临时存储
+covers/

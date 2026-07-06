@@ -1,0 +1,13 @@
+# MCP Server 依赖
+fastmcp>=0.1.0
+
+# 内容处理
+python-docx>=1.1.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# HTTP 请求
+requests>=2.31.0
+
+# 本地调试（可选）
+# mcp[cli]>=0.1.0
