@@ -52,28 +52,41 @@ def _get_access_token(account: dict) -> str:
     return data["access_token"]
 
 
-def _upload_image(access_token: str, image_url: str, appid: str) -> str:
+def _upload_image(access_token: str, image_url: str, appid: str, media_type: str = "thumb") -> str:
     """
-    上传封面图到微信服务器，返回 media_id
+    上传封面图到微信永久素材，返回 media_id
 
-    如果 image_url 是本地文件路径，直接上传；
-    如果是 HTTP URL，先下载再上传。
+    Args:
+        access_token: 访问令牌
+        image_url: 图片路径（本地）或 URL（远程）
+        appid: 公众号 AppID（保留参数，兼容接口）
+        media_type: 素材类型，thumb（封面图）或 image（正文中图片）
+
+    Returns:
+        media_id
+
+    注意：公众号草稿的 thumb_media_id 必须使用 material/add_material 接口，
+          media/upload 接口返回的 ID 在此场景下不兼容。
     """
-    # 如果是本地文件
+    # 获取图片数据
     if os.path.exists(image_url):
         with open(image_url, "rb") as f:
-            files = {"media": (os.path.basename(image_url), f, "image/png")}
-            url = f"{WX_API_BASE}/cgi-bin/media/upload?access_token={access_token}&type=image"
-            resp = requests.post(url, files=files, timeout=30)
+            image_data = f.read()
+        mime = "image/jpeg" if image_url.lower().endswith((".jpg", ".jpeg")) else "image/png"
+        filename = os.path.basename(image_url)
     else:
-        # 下载远程图片再上传
         img_resp = requests.get(image_url, timeout=15)
         img_resp.raise_for_status()
-        files = {"media": ("cover.png", img_resp.content, "image/png")}
-        url = f"{WX_API_BASE}/cgi-bin/media/upload?access_token={access_token}&type=image"
-        resp = requests.post(url, files=files, timeout=30)
+        image_data = img_resp.content
+        mime = img_resp.headers.get("Content-Type", "image/png")
+        filename = "cover.png"
 
+    # 必须使用 material/add_material（永久素材），不能用 media/upload
+    url = f"{WX_API_BASE}/cgi-bin/material/add_material?access_token={access_token}&type={media_type}"
+    files = {"media": (filename, image_data, mime)}
+    resp = requests.post(url, files=files, timeout=30)
     data = resp.json()
+
     if "media_id" not in data:
         raise Exception(f"封面上传失败: {data.get('errmsg', '未知错误')}")
 
@@ -140,25 +153,35 @@ def publish_draft(
         # 获取 access_token
         access_token = _get_access_token(account)
 
-        # 上传封面图
-        thumb_media_id = _upload_image(access_token, cover_url, account["appid"])
+        # 上传封面图（cover_url 为空时跳过，使用公众号默认封面）
+        thumb_media_id = ""
+        if cover_url and cover_url.strip():
+            try:
+                thumb_media_id = _upload_image(access_token, cover_url, account["appid"])
+                print(f"   ✅ 封面上传成功，media_id: {thumb_media_id}")
+            except Exception as e:
+                print(f"   ⚠️ 封面上传失败（将使用默认封面）: {e}")
+        else:
+            print("   ℹ️ cover_url 为空，跳过封面上传")
 
         # 提取摘要
         summary = _extract_summary(html)
 
         # 构造草稿内容
-        draft_content = {
-            "articles": [{
-                "title": title,
-                "author": account.get("author_name", "PenPulse"),
-                "digest": summary or title,
-                "content": html,
-                "content_source_url": "",
-                "thumb_media_id": thumb_media_id,
-                "need_open_comment": 1,
-                "only_fans_can_comment": 0,
-            }]
+        article = {
+            "title": title,
+            "author": account.get("author_name", "PenPulse"),
+            "digest": summary or title,
+            "content": html,
+            "content_source_url": account.get("content_source_url", "https://inzu.com.cn"),
+            "need_open_comment": 1,
+            "only_fans_can_comment": 0,
         }
+        # thumb_media_id 为空时不传该字段，微信会用默认封面
+        if thumb_media_id:
+            article["thumb_media_id"] = thumb_media_id
+
+        draft_content = {"articles": [article]}
 
         # 创建草稿
         url = f"{WX_API_BASE}/cgi-bin/draft/add?access_token={access_token}"

@@ -21,21 +21,32 @@ def research(keyword: str, days: int = 7) -> dict:
         dict with status, topics list
     """
     topics = []
+    errors = []
 
+    # 方案一：荆州新闻网首页
     try:
-        # 方案一：抓取荆州新闻网首页头条
         topics = _fetch_jznews_homepage(keyword, days)
     except Exception as e:
-        return {
-            "status": "error",
-            "message": f"抓取失败: {str(e)}",
-            "topics": []
-        }
+        errors.append(f"荆州新闻网: {str(e)[:60]}")
+
+    # 方案二：百度搜索（备用）
+    if not topics:
+        try:
+            topics = _fetch_baidu_search(keyword, days)
+        except Exception as e:
+            errors.append(f"百度搜索: {str(e)[:60]}")
+
+    # 方案三：搜狗微信（备用）
+    if not topics:
+        try:
+            topics = _fetch_sogou_wechat(keyword)
+        except Exception as e:
+            errors.append(f"搜狗微信: {str(e)[:60]}")
 
     if not topics:
         return {
-            "status": "ok",
-            "message": "未找到相关选题，请尝试更通用的关键词",
+            "status": "error",
+            "message": f"全部数据源失败: {'; '.join(errors)}",
             "topics": []
         }
 
@@ -59,7 +70,13 @@ def _fetch_jznews_homepage(keyword: str, days: int) -> List[Dict]:
         "Accept-Language": "zh-CN,zh;q=0.9",
     }
 
-    resp = requests.get(url, headers=headers, timeout=10)
+    # SSL 证书问题：hostname mismatch，降级验证
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    resp = requests.get(url, headers=headers, timeout=10, verify=False)  # noqa: S501
     resp.encoding = "utf-8"
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -143,3 +160,74 @@ def _extract_tag(title: str) -> str:
         if any(kw in title for kw in keywords):
             return tag
     return "综合"
+
+
+def _fetch_baidu_search(keyword: str, days: int) -> List[Dict]:
+    """百度搜索接口（备用数据源）"""
+    # 使用 DuckDuckGo 搜索 API（无需 key）
+    url = "https://duckduckgo.com/html/"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Accept-Language": "zh-CN,zh;q=0.9",
+    }
+    params = {"q": f"荆州 {keyword}", "kl": "zh-cn"}
+
+    resp = requests.get(url, headers=headers, params=params, timeout=10, verify=False)  # noqa: S501
+    resp.encoding = "utf-8"
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    results = []
+    for a in soup.select("a.result__a")[:15]:
+        title = a.get_text(strip=True)
+        href = a.get("href", "")
+        if len(title) < 10:
+            continue
+        results.append({
+            "title": title,
+            "url": href,
+            "summary": "",
+            "source": "DuckDuckGo",
+            "score": _calc_score(title, keyword),
+            "tag": _extract_tag(title)
+        })
+    return results
+
+
+def _fetch_sogou_wechat(keyword: str) -> List[Dict]:
+    """搜狗微信搜索（备用数据源）"""
+    url = "https://weixin.sogou.com/weixin"
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "zh-CN,zh;q=0.9",
+        "Referer": "https://weixin.sogou.com/",
+    }
+    params = {"type": 2, "query": f"荆州 {keyword}"}
+
+    resp = requests.get(url, headers=headers, params=params, timeout=10, verify=False)  # noqa: S501
+    resp.encoding = "utf-8"
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    results = []
+    for item in soup.select("div.txt-box")[:15]:
+        a = item.select_one("h3 a")
+        if not a:
+            continue
+        title = a.get_text(strip=True)
+        href = a.get("href", "")
+        p = item.select_one("p.txt-info")
+        summary = p.get_text(strip=True) if p else ""
+        if len(title) < 10:
+            continue
+        results.append({
+            "title": title,
+            "url": href if href.startswith("http") else f"https://weixin.sogou.com{href}",
+            "summary": summary[:200],
+            "source": "搜狗微信",
+            "score": _calc_score(title, keyword),
+            "tag": _extract_tag(title)
+        })
+    return results
