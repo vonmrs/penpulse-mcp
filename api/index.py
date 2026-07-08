@@ -1,92 +1,112 @@
 """
-PenPulse API · Vercel Serverless Function
-@vercel/python 运行时入口
+PenPulse API · Vercel ASGI Serverless Function
 """
 
 import json
 import sys
 import os
 
-# 注入 modules 路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)) + "/..")
 
+# ── ASGI app 必须的三个顶层函数 ────────────────────────────
 
-def handler(request):
-    """Vercel serverless function handler — 必须用 vercel_runtime.Request/Response"""
-    try:
-        from vercel_runtime import Request, Response
-    except ImportError:
-        # 本地调试时用模拟
-        class FakeResponse:
-            def __init__(self, body, status=200, headers=None):
-                self._body = body
-                self.status = status
-                self.headers = headers or {}
-            def decode(self):
-                return self._body
-        def handler(req):
-            return FakeResponse(json.dumps({"error": "请部署到 Vercel"}))
+async def app(scope, receive, send):
+    """ASGI 应用入口，Vercel 会调用这个"""
+    path = scope.get("path", "")
+    method = scope.get("method", "GET")
 
-    from vercel_runtime import Request, Response
-
-    # CORS headers
-    cors = {
+    # CORS
+    cors_headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Content-Type": "application/json; charset=utf-8",
     }
 
     # OPTIONS 预检
-    if request.method == "OPTIONS":
-        return Response("", status=200, headers=cors)
+    if method == "OPTIONS":
+        await send({
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(k.encode(), v.encode()) for k, v in cors_headers.items()],
+        })
+        await send({"type": "http.response.body", "body": b""})
+        return
 
-    # 解析 body
+    # 只接受 POST
+    if method != "POST":
+        await send({
+            "type": "http.response.start",
+            "status": 405,
+            "headers": [(k.encode(), v.encode()) for k, v in cors_headers.items()],
+        })
+        await send({"type": "http.response.body", "body": b'{"error":"method not allowed"}'})
+        return
+
+    # 读取 body
+    body = await receive()
+    raw = body.get("body", b"")
     try:
-        body = json.loads(request.body or "{}")
+        payload = json.loads(raw.decode())
     except Exception:
-        body = {}
+        payload = {}
 
-    action = body.get("action", "")
+    action = payload.get("action", "")
 
-    # ── health ────────────────────────────────────────────────
+    # ── 处理各 action ─────────────────────────────────────
+    result = process_action(action, payload)
+
+    body_str = json.dumps(result, ensure_ascii=False)
+    response_headers = [
+        *[(k.encode(), v.encode()) for k, v in cors_headers.items()],
+        (b"Content-Type", b"application/json; charset=utf-8"),
+    ]
+
+    await send({
+        "type": "http.response.start",
+        "status": 200,
+        "headers": response_headers,
+    })
+    await send({"type": "http.response.body", "body": body_str.encode()})
+
+
+# ── 业务逻辑（保持不动）────────────────────────────────────
+
+def process_action(action, body):
+    """处理各 action，返回 dict"""
+
     if action == "health":
-        result = {"status": "ok", "service": "PenPulse", "version": "1.0.0"}
+        return {"status": "ok", "service": "PenPulse", "version": "1.0.0"}
 
-    # ── research ───────────────────────────────────────────────
     elif action == "research":
         from modules.research import research
         keyword = body.get("keyword", "")
         days = int(body.get("days", 7))
         try:
-            result = research(keyword, days)
+            return research(keyword, days)
         except Exception as e:
-            result = {"status": "error", "message": str(e)}
+            return {"status": "error", "message": str(e)}
 
-    # ── format ────────────────────────────────────────────────
     elif action == "format":
         from modules.formatter import format_html
         md = body.get("markdown", "")
         template_id = body.get("template_id", "journal")
         try:
-            result = format_html(md, template_id)
+            return format_html(md, template_id)
         except Exception as e:
-            result = {"status": "error", "message": str(e)}
+            return {"status": "error", "message": str(e)}
 
-    # ── publish ───────────────────────────────────────────────
     elif action == "publish":
         from modules.publisher import publish_draft
         try:
-            result = publish_draft(
+            return publish_draft(
                 title=body.get("title", ""),
                 html=body.get("html", ""),
                 cover_url=body.get("cover_url", ""),
                 account_id=body.get("account_id", "yinshuju"),
             )
         except Exception as e:
-            result = {"status": "error", "message": str(e)}
+            return {"status": "error", "message": str(e)}
 
-    # ── pipeline ──────────────────────────────────────────────
     elif action == "pipeline":
         keyword = body.get("keyword", "荆州 文旅")
         days = int(body.get("days", 7))
@@ -112,7 +132,7 @@ def handler(request):
                 chosen = f"{keyword} 最新资讯"
                 summary, source, tag, score = "", "", "综合", 50
 
-            # Step 2: 生成测试内容（真实 AI 写作需配 API Key）
+            # Step 2: 测试内容（真实 AI 写作需配 API Key）
             test_md = f"""# {chosen}
 
 ## 今日主题
@@ -120,8 +140,6 @@ def handler(request):
 {summary or chosen} 相关深度分析。
 
 ## 核心要点
-
-本篇文章围绕「{keyword}」展开，为您梳理最新动态与趋势判断。
 
 | 指标 | 数据 |
 |------|------|
@@ -131,13 +149,13 @@ def handler(request):
 
 ## 详细解读
 
-{summary or '以下为基于公开信息的整理分析。'} 通过持续跟踪，我们观察到这一领域的几个关键变化：
+{summary or '以下为基于公开信息的整理分析。'} 以下几个趋势值得关注：
 
 **第一，趋势在加速。** 政策支持力度持续加大，市场关注度明显提升。
 
 **第二，结构在分化。** 头部效应开始显现，资源向优势领域集中。
 
-**第三，机会在涌现。** 新赛道、新场景不断出现，存在弯道超车的窗口期。
+**第三，机会在涌现。** 新赛道、新场景不断出现，存在弯道超车窗口期。
 
 ## 结语
 
@@ -156,7 +174,7 @@ def handler(request):
                     cover_url="",
                     account_id=account_id,
                 )
-                result = {
+                return {
                     "status": r4.get("status", "ok"),
                     "topic": chosen,
                     "source": source,
@@ -168,19 +186,18 @@ def handler(request):
                     "message": r4.get("message", ""),
                 }
             else:
-                result = r3
+                return r3
 
         except Exception as e:
             import traceback
-            result = {
+            return {
                 "status": "error",
                 "message": str(e),
                 "trace": traceback.format_exc()[-300:]
             }
 
-    # ── 未知 action ───────────────────────────────────────────
     else:
-        result = {
+        return {
             "status": "ok",
             "service": "PenPulse AI 内容自动化",
             "version": "1.0.0",
@@ -194,6 +211,3 @@ def handler(request):
                 "account_id": "yinshuju"
             }
         }
-
-    body_str = json.dumps(result, ensure_ascii=False)
-    return Response(body_str, status=200, headers=cors)
