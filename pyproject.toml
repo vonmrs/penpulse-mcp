@@ -1,0 +1,12 @@
+[project]
+name = "penpulse"
+version = "1.0.0"
+requires-python = ">=3.11"
+
+[tool.vercel]
+include_files = [
+    "modules/**/*.py",
+    "config/**/*.json",
+    "templates/**/*.json",
+]
+python_version = "3.11"
