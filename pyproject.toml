@@ -5,9 +5,3 @@ requires-python = ">=3.11"
 
 [tool.vercel]
 entrypoint = "api/index.py"
-python_version = "3.11"
-
-[tool.vercel.includeFiles]
-modules = ["modules/**/*.py"]
-config = ["config/**/*.json"]
-templates = ["templates/**/*.json"]
