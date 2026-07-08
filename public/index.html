@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PenPulse · AI 内容自动化</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --border: #1f2937;
+    --primary: #6366f1;
+    --primary-hover: #818cf8;
+    --accent: #22d3ee;
+    --text: #f9fafb;
+    --text-muted: #9ca3af;
+    --success: #10b981;
+    --error: #ef4444;
+    --warning: #f59e0b;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(99,102,241,0.15);
+    color: var(--primary-hover);
+    border: 1px solid rgba(99,102,241,0.3);
+  }
+
+  /* Main Layout */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .subtitle { color: var(--text-muted); margin-bottom: 32px; }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Form Grid */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  label { font-size: 13px; color: var(--text-muted); }
+  input, select, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--primary);
+  }
+  textarea { resize: vertical; min-height: 100px; }
+
+  .full { grid-column: 1 / -1; }
+
+  /* Buttons */
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary), #4f46e5);
+    color: #fff;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--primary); color: var(--primary-hover); }
+
+  .btn-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+  /* Status / Log */
+  .log-area {
+    background: #080d17;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    max-height: 420px;
+    overflow-y: auto;
+    margin-top: 16px;
+  }
+  .log-line { display: flex; gap: 10px; color: var(--text-muted); }
+  .log-line.ok { color: var(--success); }
+  .log-line.error { color: var(--error); }
+  .log-line.info { color: var(--accent); }
+  .log-line .ts { color: #4b5563; min-width: 55px; }
+
+  /* Topic Cards */
+  .topics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .topic-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .topic-card:hover { border-color: var(--primary); background: rgba(99,102,241,0.05); }
+  .topic-card .title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .topic-card .meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 10px; }
+  .topic-card .tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    background: rgba(99,102,241,0.15);
+    color: var(--primary-hover);
+  }
+
+  /* Preview */
+  .preview-frame {
+    width: 100%;
+    height: 500px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    color: #333;
+    margin-top: 16px;
+  }
+
+  /* Pipeline Steps */
+  .pipeline-steps {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .step {
+    text-align: center;
+    padding: 10px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    transition: all 0.3s;
+  }
+  .step.active { border-color: var(--primary); color: var(--primary-hover); background: rgba(99,102,241,0.08); }
+  .step.done { border-color: var(--success); color: var(--success); background: rgba(16,185,129,0.08); }
+  .step-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    color: #4b5563;
+    font-size: 12px;
+    padding: 24px;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    transition: opacity 0.3s;
+  }
+  .toast.ok { background: var(--success); color: #fff; }
+  .toast.error { background: var(--error); color: #fff; }
+
+  @media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .pipeline-steps { grid-template-columns: repeat(5, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">PenPulse</span>
+  <span class="badge">AI 内容自动化</span>
+</header>
+
+<div class="container">
+
+  <!-- Hero -->
+  <div style="margin-bottom: 32px;">
+    <h1>一键生成公众号内容</h1>
+    <p class="subtitle">选题 · AI 写作 · 智能排版 · 封面生成 · 自动发布，全链路自动化</p>
+  </div>
+
+  <!-- Pipeline Steps -->
+  <div class="card">
+    <div class="pipeline-steps">
+      <div class="step active" id="step1"><span class="step-icon">🔍</span>选题</div>
+      <div class="step" id="step2"><span class="step-icon">✍️</span>写作</div>
+      <div class="step" id="step3"><span class="step-icon">🎨</span>排版</div>
+      <div class="step" id="step4"><span class="step-icon">🖼️</span>封面</div>
+      <div class="step" id="step5"><span class="step-icon">🚀</span>发布</div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>选题关键词</label>
+        <input type="text" id="keyword" value="荆州 文旅" placeholder="例如：荆州高考、荆州招商">
+      </div>
+      <div class="form-group">
+        <label>搜索天数</label>
+        <select id="days">
+          <option value="3">最近 3 天</option>
+          <option value="7" selected>最近 7 天</option>
+          <option value="14">最近 14 天</option>
+          <option value="30">最近 30 天</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>排版模板</label>
+        <select id="template_id">
+          <option value="journal">📰 晨报头版（朝鉴风格）</option>
+          <option value="magazine">📖 杂志封面</option>
+          <option value="cards">🃏 卡片瀑布流</option>
+          <option value="dashboard">📊 数据仪表盘</option>
+          <option value="minimal">✦ 极简留白</option>
+          <option value="chat">💬 对话气泡</option>
+          <option value="terminal">💻 终端界面（棱镜风格）</option>
+          <option value="code">⌨️ 代码编辑器</option>
+          <option value="neon">🌆 霓虹赛博</option>
+          <option value="glass">🔮 毛玻璃卡片</option>
+          <option value="geek">🧪 极客简约</option>
+          <option value="holo">🔮 全息投影</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>公众号</label>
+        <select id="account_id">
+          <option value="yinshuju">银枢局</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="btnRun" onclick="runPipeline()">▶ 一键运行全链路</button>
+      <button class="btn-secondary" onclick="runStep('research')">🔍 只搜选题</button>
+      <button class="btn-secondary" onclick="runStep('format')">🎨 只排版</button>
+      <button class="btn-secondary" onclick="clearLog()">🗑️ 清空日志</button>
+    </div>
+
+    <!-- Topics Preview -->
+    <div class="topics-grid" id="topicsGrid" style="display:none;"></div>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <div class="card-title">📋 执行日志</div>
+    <div class="log-area" id="logArea">
+      <div class="log-line info"><span class="ts">[等待中]</span> 点击「一键运行」开始</div>
+    </div>
+  </div>
+
+  <!-- HTML Preview -->
+  <div class="card" id="previewCard" style="display:none;">
+    <div class="card-title">
+      📄 预览
+      <button class="btn-secondary" onclick="openInWechat()" style="margin-left:auto;">🚀 去公众号后台发布</button>
+    </div>
+    <iframe class="preview-frame" id="previewFrame"></iframe>
+  </div>
+
+</div>
+
+<footer>
+  PenPulse · AI 内容自动化平台 · © 2026 · <a href="https://inzu.com.cn" style="color:#6366f1;text-decoration:none;">inzu.com.cn</a>
+</footer>
+
+<div class="toast" id="toast" style="display:none;"></div>
+
+<script>
+const API_BASE = '/api';
+
+let state = { draft_id: '', preview_url: '', html: '' };
+
+function log(msg, type='') {
+  const el = document.getElementById('logArea');
+  const ts = new Date().toLocaleTimeString('zh-CN', {hour12:false});
+  const div = document.createElement('div');
+  div.className = 'log-line ' + type;
+  div.innerHTML = `<span class="ts">[${ts}]</span> ${msg}`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setStep(n, cls) {
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('step' + i);
+    if (i < n) el.className = 'step done';
+    else if (i === n) el.className = 'step ' + (cls || 'active');
+    else el.className = 'step';
+  }
+}
+
+function showToast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+function clearLog() {
+  document.getElementById('logArea').innerHTML = '<div class="log-line info"><span class="ts">[空闲]</span> 日志已清空</div>';
+}
+
+async function callAPI(action, params) {
+  const resp = await fetch(API_BASE, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ action, ...params })
+  });
+  return resp.json();
+}
+
+async function runStep(step) {
+  if (step === 'research') {
+    log('🔍 搜索选题...');
+    setStep(1, 'active');
+    const r = await callAPI('research', {
+      keyword: document.getElementById('keyword').value,
+      days: parseInt(document.getElementById('days').value)
+    });
+    if (r.status === 'ok') {
+      log(`✅ 找到 ${r.topics.length} 条选题`, 'ok');
+      r.topics.slice(0,6).forEach(t => log(`  · ${t.title}  [${t.source} / ${t.tag}]`));
+      setStep(1, 'done');
+    } else {
+      log(`❌ ${r.message || '搜索失败'}`, 'error');
+    }
+  } else if (step === 'format') {
+    log('🎨 排版中...');
+    setStep(3, 'active');
+    const r = await callAPI('format', {
+      markdown: '# 测试标题\n\n正文内容',
+      template_id: document.getElementById('template_id').value
+    });
+    if (r.status === 'ok') {
+      log(`✅ 排版完成 (${r.html_length} 字符)`, 'ok');
+      state.html = r.html;
+      setStep(3, 'done');
+      showPreview(r.html);
+    } else {
+      log(`❌ 排版失败: ${r.message}`, 'error');
+    }
+  }
+}
+
+async function runPipeline() {
+  const btn = document.getElementById('btnRun');
+  btn.disabled = true;
+  btn.textContent = '⏳ 运行中...';
+  clearLog();
+  state = { draft_id: '', preview_url: '', html: '' };
+  document.getElementById('previewCard').style.display = 'none';
+  document.getElementById('topicsGrid').style.display = 'none';
+
+  try {
+    log('🚀 启动全链路...');
+    setStep(1, 'active');
+
+    const r = await callAPI('pipeline', {
+      keyword: document.getElementById('keyword').value,
+      days: parseInt(document.getElementById('days').value),
+      template_id: document.getElementById('template_id').value,
+      account_id: document.getElementById('account_id').value
+    });
+
+    if (r.status === 'ok') {
+      setStep(1, 'done');
+      setStep(2, 'done');
+      setStep(3, 'done');
+      setStep(4, 'done');
+      setStep(5, 'done');
+      state.draft_id = r.draft_id || '';
+      state.preview_url = r.preview_url || '';
+      log(`✅ 选题：「${r.topic}」`, 'ok');
+      log(`📝 草稿已推送至公众号后台 [${r.html_length} 字符]`, 'ok');
+      if (r.preview_url) log(`🔗 预览链接：${r.preview_url}`);
+      log('🎉 全链路执行完成！请在公众号后台审核发布', 'ok');
+      showToast('草稿已推送，请去公众号后台审核发布', 'ok');
+      if (r.preview_url) {
+        setTimeout(() => window.open(r.preview_url, '_blank'), 1500);
+      }
+    } else {
+      log(`❌ 失败: ${r.message || JSON.stringify(r)}`, 'error');
+      showToast('执行失败: ' + (r.message || '未知错误'), 'error');
+    }
+  } catch(e) {
+    log(`❌ 网络错误: ${e.message}`, 'error');
+    showToast('网络错误', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ 一键运行全链路';
+  }
+}
+
+function showPreview(html) {
+  const card = document.getElementById('previewCard');
+  const frame = document.getElementById('previewFrame');
+  card.style.display = 'block';
+  frame.srcdoc = `<html><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>body{padding:20px;max-width:750px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}.preview-watermark{position:fixed;bottom:10px;right:10px;font-size:11px;color:#ccc;pointer-events:none}</style>
+  </head><body>${html}<div class=preview-watermark>PenPulse 预览</div></body></html>`;
+}
+
+function openInWechat() {
+  if (state.preview_url) window.open(state.preview_url, '_blank');
+  else window.open('https://mp.weixin.qq.com', '_blank');
+}
+</script>
+</body>
+</html>
