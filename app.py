@@ -9,7 +9,7 @@ import os
 
 # modules 在 api/ 子目录，向上两级
 _root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(_root, "api"))
+sys.path.insert(0, os.path.join(_root, "handlers"))
 sys.path.insert(0, _root)
 
 # ── ASGI 入口（Vercel Python runtime 要求 app 变量） ──────────
