@@ -1,0 +1,17 @@
+{
+  "name": "penpulse",
+  "version": "1.0.0",
+  "private": true,
+  "vercel": {
+    "builds": [
+      {
+        "src": "api/index.py",
+        "use": "@vercel/python"
+      },
+      {
+        "src": "index.html",
+        "use": "@vercel/static"
+      }
+    ]
+  }
+}
