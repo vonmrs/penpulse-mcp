@@ -258,7 +258,13 @@ export default async function handler(req, res) {
   }
 
   let body = {};
-  try { body = JSON.parse(req.body || '{}'); } catch {}
+  try {
+    const raw = req.body;
+    if (!raw) {}
+    else if (typeof raw === 'string') body = JSON.parse(raw);
+    else if (Buffer.isBuffer(raw)) body = JSON.parse(raw.toString());
+    else if (typeof raw === 'object') body = raw;
+  } catch {}
 
   const action = body.action || '';
 

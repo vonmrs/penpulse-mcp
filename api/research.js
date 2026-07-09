@@ -5,6 +5,14 @@
  */
 
 // ── 评分函数 ─────────────────────────────────────────────────
+function parseBody(raw) {
+  if (!raw) return {};
+  if (typeof raw === "string") return JSON.parse(raw);
+  if (Buffer.isBuffer(raw)) return JSON.parse(raw.toString());
+  if (typeof raw === "object") return raw;
+  return {};
+}
+
 function calcScore(title, keyword) {
   const kws = keyword.toLowerCase().split(/[\s,，、]+/);
   const t = title.toLowerCase();
@@ -139,8 +147,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  let body = {};
-  try { body = JSON.parse(req.body || '{}'); } catch {}
+  let body = parseBody(req.body);
 
   const keyword = body.keyword || '荆州';
   const days = parseInt(body.days) || 7;

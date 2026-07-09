@@ -105,6 +105,8 @@ async function createDraft(accessToken, title, html, author, thumbMediaId, conte
 }
 
 // ── 主函数 ───────────────────────────────────────────────────
+function parseBody(raw) { if (!raw) return {}; if (typeof raw === "string") return JSON.parse(raw); if (Buffer.isBuffer(raw)) return JSON.parse(raw.toString()); if (typeof raw === "object") return raw; return {}; }
+
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
