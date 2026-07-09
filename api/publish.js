@@ -4,7 +4,7 @@
  * Vercel Node.js Serverless Function
  */
 
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 // ── 微信公众号 API ───────────────────────────────────────────
 const WX_API = 'https://api.weixin.qq.com';

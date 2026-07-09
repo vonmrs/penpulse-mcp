@@ -133,7 +133,7 @@ function toMarkdown(text) {
 }
 
 // ── 主函数 ───────────────────────────────────────────────────
-export default async function handler(req, res) {
+export default async function uploadHandler(req, res) {
   try {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -181,3 +181,5 @@ export default async function handler(req, res) {
     return res.status(200).json({ status: 'error', message: e.message });
   }
 }
+
+export { uploadHandler as handler };
