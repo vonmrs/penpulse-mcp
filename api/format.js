@@ -289,29 +289,44 @@ function buildFullHtml(md, templateId, theme, options = {}) {
 function parseBody(raw) { if (!raw) return {}; if (typeof raw === "string") return JSON.parse(raw); if (Buffer.isBuffer(raw)) return JSON.parse(raw.toString()); if (typeof raw === "object") return raw; return {}; }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  try {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.status(200).end();
 
-  let body = {};
-  try { body = JSON.parse(req.body || '{}'); } catch {}
+    const raw = req.body;
+    let body = {};
+    if (raw) {
+      if (typeof raw === 'string') body = JSON.parse(raw);
+      else if (Buffer.isBuffer(raw)) body = JSON.parse(raw.toString());
+      else if (typeof raw === 'object') body = raw;
+    }
 
-  const markdown = body.markdown || body.content || '# 标题\n\n正文内容';
-  const templateId = body.template_id || 'journal';
-  const theme = THEMES[templateId] || DEFAULT_THEME;
+    const markdown = body.markdown || body.content || '# 标题\n\n正文内容';
+    const templateId = body.template_id || 'journal';
+    const theme = THEMES[templateId] || THEMES['journal'];
 
-  const html = buildFullHtml(markdown, templateId, theme, {
-    accountName: body.account_name || '银枢局',
-    accountId: body.account_id || 'gh_xxxx',
-    description: body.description || '洞察趋势，把握先机',
-  });
+    const opts = body.account_name ? {
+      accountName: body.account_name,
+      accountId: body.account_id || 'gh_xxxx',
+      description: body.description || '洞察趋势，把握先机',
+    } : {
+      accountName: '银枢局',
+      accountId: 'gh_xxxx',
+      description: '洞察趋势，把握先机',
+    };
 
-  return res.status(200).json({
-    status: 'ok',
-    html,
-    html_length: html.length,
-    template_id: templateId,
-    theme: Object.keys(THEMES).includes(templateId) ? 'custom' : 'journal (default)',
-  });
+    const html = buildFullHtml(markdown, templateId, theme, opts);
+
+    return res.status(200).json({
+      status: 'ok',
+      html,
+      html_length: html.length,
+      template_id: templateId,
+      theme: THEMES[templateId] ? 'custom' : 'journal (default)',
+    });
+  } catch(e) {
+    return res.status(200).json({ status: 'error', message: e.message, stack: e.stack });
+  }
 }

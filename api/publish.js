@@ -108,26 +108,25 @@ async function createDraft(accessToken, title, html, author, thumbMediaId, conte
 function parseBody(raw) { if (!raw) return {}; if (typeof raw === "string") return JSON.parse(raw); if (Buffer.isBuffer(raw)) return JSON.parse(raw.toString()); if (typeof raw === "object") return raw; return {}; }
 
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'method not allowed' });
-  }
-
-  let body = {};
-  try { body = JSON.parse(req.body || '{}'); } catch {}
-
-  const { title, html, cover_base64, account_id } = body;
-
-  if (!title || !html) {
-    return res.status(200).json({ status: 'error', message: '缺少 title 或 html 参数' });
-  }
-
   try {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'method not allowed' });
+    }
+
+    const body = parseBody(req.body);
+    const title = body.title;
+    const html = body.html;
+    const cover_base64 = body.cover_base64;
+    const account_id = body.account_id;
+
+    if (!title || !html) {
+      return res.status(200).json({ status: 'error', message: '缺少 title 或 html 参数' });
+    }
+
     const config = getConfig();
     const account = config.accounts
       ? config.accounts.find(a => a.id === account_id) || config.accounts[0]
