@@ -250,7 +250,7 @@ function buildFullHtml(md, templateId, theme, options = {}) {
   }
 
   // 底部关注
-  const bottomCard = `
+  let bottomCard = `
 <div style="margin-top:32px;padding:24px;background:${theme.muted};border-radius:12px;text-align:center;border:1px solid ${theme.border};">
   <p style="color:${theme.text};font-size:15px;margin:0 0 12px;">长按识别下方二维码，关注<span style="font-weight:700;color:${theme.primary};">${accountName}</span></p>
   <div style="color:#8b949e;font-size:12px;margin-top:12px;">点击「在看」或「转发」，是对创作者最大的支持</div>
