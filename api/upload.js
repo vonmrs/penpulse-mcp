@@ -12,51 +12,58 @@ const gunzip = promisify(zlib.unzip);
  * 从 ZIP buffer 中提取指定文件的解压内容
  * ZIP 格式：每个文件 = 本地文件头 + 压缩数据
  */
+/**
+ * 从 ZIP buffer 中按名称提取文件
+ * 使用中央目录（更可靠）：中央目录位于 ZIP 末尾，可精确定位每个条目
+ */
 function extractFileFromZip(buffer, targetName) {
-  let offset = 0;
   const name = targetName.replace(/\\/g, '/'); // Windows path normalization
 
-  while (offset < buffer.length) {
-    // ZIP 本地文件头签名: 0x04034b50 (little-endian: 50 4b 03 04)
-    if (buffer.readUInt32LE(offset) !== 0x04034b50) break;
+  // 1. 找中央目录结束标记 (0x06054b50)
+  let cdEndOffset = -1;
+  for (let i = buffer.length - 22; i >= 0; i--) {
+    if (buffer.readUInt32LE(i) === 0x06054b50) { cdEndOffset = i; break; }
+  }
+  if (cdEndOffset === -1) throw new Error('无效的 ZIP 文件（找不到中央目录）');
 
-    const versionNeeded = buffer.readUInt16LE(offset + 4);
-    const flags = buffer.readUInt16LE(offset + 6);
-    const compression = buffer.readUInt16LE(offset + 8);
-    const compressedSize = buffer.readUInt32LE(offset + 18);
-    const nameLen = buffer.readUInt16LE(offset + 26);
-    const extraLen = buffer.readUInt16LE(offset + 28);
+  const cdOffset = buffer.readUInt32LE(cdEndOffset + 16);
+  const cdEntries = buffer.readUInt16LE(cdEndOffset + 8);
 
-    const nameBytes = buffer.slice(offset + 30, offset + 30 + nameLen);
-    const entryName = nameBytes.toString('utf8').replace(/\\/g, '/');
-    const dataStart = offset + 30 + nameLen + extraLen;
+  // 2. 遍历中央目录，找目标文件
+  let offset = cdOffset;
+  for (let i = 0; i < cdEntries; i++) {
+    if (buffer.readUInt32LE(offset) !== 0x02014b50) break;
+
+    const compression = buffer.readUInt16LE(offset + 10);
+    const compressedSize = buffer.readUInt32LE(offset + 20);
+    const nameLen = buffer.readUInt16LE(offset + 28);
+    const extraLen = buffer.readUInt16LE(offset + 30);
+    const commentLen = buffer.readUInt16LE(offset + 32);
+    const localHeaderOffset = buffer.readUInt32LE(offset + 42);
+
+    const entryName = buffer.slice(offset + 46, offset + 46 + nameLen).toString('utf8').replace(/\\/g, '/');
 
     if (entryName === name) {
+      // 3. 从本地文件头读取压缩数据位置
+      const lhNameLen = buffer.readUInt16LE(localHeaderOffset + 26);
+      const lhExtraLen = buffer.readUInt16LE(localHeaderOffset + 28);
+      const dataStart = localHeaderOffset + 30 + lhNameLen + lhExtraLen;
       const compressedData = buffer.slice(dataStart, dataStart + compressedSize);
-      let decompressed;
 
       if (compression === 0) {
-        // 不压缩
-        decompressed = compressedData;
+        return compressedData.toString('utf8');
       } else if (compression === 8) {
-        // DEFLATE
-        decompressed = zlib.inflateSync(compressedData);
-      } else if (compression === 9) {
-        // DEFLATE64 (less common, try raw inflate)
-        decompressed = zlib.inflateSync(compressedData);
+        // Python zipfile 存 raw DEFLATE，用 inflateRawSync
+        return zlib.inflateRawSync(compressedData).toString('utf8');
       } else {
         throw new Error(`不支持的压缩方式: ${compression}`);
       }
-
-      return decompressed.toString('utf8');
     }
 
-    // 移动到下一个条目（对齐到偶数字节）
-    offset = dataStart + compressedSize;
-    if (offset % 2 !== 0) offset++;
+    offset += 46 + nameLen + extraLen + commentLen;
   }
 
-  return null; // 没找到
+  return null;
 }
 
 /**
