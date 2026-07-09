@@ -10,6 +10,7 @@
 import researchHandler from './research.js';
 import formatHandler from './format.js';
 import publishHandler from './publish.js';
+import uploadHandler from './upload.js';
 
 // 前端页面（内联避免额外文件依赖）
 const FRONTEND_HTML = `<!DOCTYPE html>
@@ -40,6 +41,25 @@ textarea{min-height:100px;resize:vertical}
 .btn-secondary{background:#21262d;border:1px solid #30363d}
 .btn-secondary:hover{background:#30363d}
 .btn-group{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.tabs{display:flex;gap:2px;background:#21262d;border-radius:10px;padding:3px;margin-bottom:20px;width:fit-content}
+.tab-btn{background:none;border:none;border-radius:7px;color:#8b949e;font-size:13px;padding:8px 20px;cursor:pointer;transition:all .2s;font-weight:500}
+.tab-btn:hover{color:#c9d1d9}
+.tab-btn.active{background:#30363d;color:#58a6ff;font-weight:600}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.upload-zone{border:2px dashed #30363d;border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-top:8px}
+.upload-zone:hover,.upload-zone.dragover{border-color:#58a6ff;background:rgba(88,166,255,0.05)}
+.upload-zone input{display:none}
+.upload-zone .icon{font-size:32px;margin-bottom:8px}
+.upload-zone .hint{font-size:12px;color:#8b949e;margin-top:4px}
+.upload-zone .filename{font-size:13px;color:#3fb950;font-weight:600;margin-top:6px}
+.file-info{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;margin-top:8px;display:none}
+.file-info .fi-name{color:#c9d1d9;font-size:13px;font-weight:600}
+.file-info .fi-meta{color:#8b949e;font-size:11px;margin-top:4px}
+.dash-row{display:flex;align-items:center;gap:10px;margin:8px 0}
+.dash-label{flex-shrink:0;width:70px;font-size:12px;color:#8b949e}
+.dash-value{font-size:13px;color:#c9d1d9}
+.warn-tag{display:inline-block;background:#d299220d;border:1px solid #d2992240;color:#d29922;font-size:11px;padding:2px 8px;border-radius:4px;margin:2px}
 #log{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;min-height:120px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:12px;line-height:1.8;max-height:300px;overflow-y:auto;margin-top:20px}
 .log-line{margin:2px 0}
 .log-ok{color:#3fb950}.log-error{color:#f85149}.log-info{color:#58a6ff}.log-warn{color:#d29922}
@@ -106,6 +126,14 @@ footer a{color:#58a6ff;text-decoration:none}
 </div>
 </div>
 
+<!-- 链路切换 Tab -->
+<div class="tabs">
+  <button class="tab-btn active" id="tab1" onclick="switchTab(1)">🤖 链路一：AI全链路</button>
+  <button class="tab-btn" id="tab2" onclick="switchTab(2)">📄 链路二：文档导入</button>
+</div>
+
+<!-- 链路一：AI全链路 -->
+<div class="tab-content active" id="content1">
 <div class="card">
   <h3><span>🚀</span> 全链路执行</h3>
   <div class="step-row"><div class="step" id="s1">1</div>选题搜索</div>
@@ -120,6 +148,45 @@ footer a{color:#58a6ff;text-decoration:none}
   <div id="log"><div class="log-info log-line">PenPulse 就绪，等待指令…</div></div>
 </div>
 
+
+</div><!-- end tab1 -->
+
+<!-- 链路二：文档导入 -->
+<div class="tab-content" id="content2">
+<div class="card">
+  <h3><span>📄</span> 导入 Word 文档</h3>
+  <p style="font-size:12px;color:#8b949e;margin-bottom:12px">上传本地 .docx 文件（Word 2007+格式），自动解析为 Markdown，再经 AI 排版后发布至公众号。</p>
+
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+    <input type="file" id="fileInput" accept=".docx" onchange="handleFileSelect(this)">
+    <div class="icon">📂</div>
+    <div class="hint">点击选择 .docx 文件，或拖拽到此处</div>
+    <div class="hint" style="margin-top:4px;font-size:11px">仅支持 .docx 格式（Word 2007+）</div>
+    <div class="filename" id="fileName" style="display:none"></div>
+  </div>
+
+  <div class="file-info" id="fileInfo">
+    <div class="fi-name" id="fiName"></div>
+    <div class="fi-meta" id="fiMeta"></div>
+  </div>
+
+  <label style="margin-top:16px">文章标题</label>
+  <input id="docTitle" placeholder="自动从文档提取，或手动填写">
+
+  <div class="btn-group" style="margin-top:16px">
+    <button class="btn" onclick="doUpload()">📄 解析文档</button>
+    <button class="btn btn-secondary" onclick="doDocPipeline()">🚀 立即发布</button>
+    <button class="btn btn-secondary" onclick="doDocPreview()">👁 预览排版</button>
+  </div>
+
+  <div id="parseResult" style="display:none;margin-top:16px">
+    <div style="font-size:12px;color:#8b949e;margin-bottom:6px">📝 解析结果预览（前 500 字）：</div>
+    <div id="parsePreview" style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;font-size:12px;color:#c9d1d9;max-height:150px;overflow-y:auto;line-height:1.6;"></div>
+  </div>
+
+  <div id="log2"><div class="log-info log-line">📄 文档导入就绪，请上传 Word 文件…</div></div>
+</div>
+</div><!-- end tab2 -->
 <div id="preview">
   <div id="previewBar">
     <span>📱 公众号预览效果</span>
@@ -233,6 +300,158 @@ async function doPreview() {
   document.getElementById('previewFrame').srcdoc = d.html;
   log('👁 预览已生成', 'ok');
 }
+
+// ── Tab 切换 ─────────────────────────────────────────────────
+function switchTab(n) {
+  document.getElementById('tab1').className = 'tab-btn' + (n === 1 ? ' active' : '');
+  document.getElementById('tab2').className = 'tab-btn' + (n === 2 ? ' active' : '');
+  document.getElementById('content1').className = 'tab-content' + (n === 1 ? ' active' : '');
+  document.getElementById('content2').className = 'tab-content' + (n === 2 ? ' active' : '');
+}
+
+// ── 文件选择 ─────────────────────────────────────────────────
+let uploadedFileBase64 = null;
+
+function handleFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!file.name.endsWith('.docx')) {
+    alert('仅支持 .docx 文件（Word 2007+ 格式）');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    uploadedFileBase64 = e.target.result.split(',')[1]; // 去掉 data:... 前缀
+    document.getElementById('fileName').style.display = 'block';
+    document.getElementById('fileName').textContent = '✅ ' + file.name;
+    document.getElementById('fiName').textContent = file.name;
+    document.getElementById('fiMeta').textContent = '大小：' + (file.size / 1024).toFixed(1) + ' KB';
+    document.getElementById('fileInfo').style.display = 'block';
+    document.getElementById('parseResult').style.display = 'none';
+    log2('✅ 文件已加载：' + file.name + '（' + (file.size/1024).toFixed(1) + ' KB）', 'ok');
+  };
+  reader.onerror = function() { log2('❌ 文件读取失败', 'error'); };
+  reader.readAsDataURL(file);
+}
+
+function log2(msg, type) {
+  const el = document.getElementById('log2');
+  if (!el) return;
+  const cls = type === 'ok' ? 'log-ok' : type === 'error' ? 'log-error' : 'log-info';
+  el.innerHTML += '<div class="log-line '+cls+'">'+msg+'</div>';
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── 解析文档 ─────────────────────────────────────────────────
+async function doUpload() {
+  if (!uploadedFileBase64) { log2('⚠️ 请先上传 Word 文件', 'warn'); return; }
+  const title = document.getElementById('docTitle').value.trim();
+  log2('📄 正在解析文档…');
+  try {
+    const r = await fetch('/api/upload', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({file_base64: uploadedFileBase64, filename: document.getElementById('fiName').textContent}),
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      window._docMarkdown = d.markdown;
+      if (!title && d.text) {
+        const firstLine = d.text.split(/[\n\r]+/)[0].trim();
+        if (firstLine.length <= 50) document.getElementById('docTitle').value = firstLine;
+      }
+      const preview = d.markdown.slice(0, 500);
+      document.getElementById('parsePreview').textContent = preview + (d.markdown.length > 500 ? '\n…' : '');
+      document.getElementById('parseResult').style.display = 'block';
+      log2('✅ 解析成功！共 ' + d.word_count + ' 字，可直接发布', 'ok');
+      if (d.warnings && d.warnings.length) {
+        d.warnings.forEach(w => log2('⚠️ ' + w, 'warn'));
+      }
+    } else {
+      log2('❌ 解析失败: ' + d.message, 'error');
+    }
+  } catch(e) { log2('❌ 网络错误: ' + e.message, 'error'); }
+}
+
+// ── 文档发布 ─────────────────────────────────────────────────
+async function doDocPipeline() {
+  if (!uploadedFileBase64) { log2('⚠️ 请先上传 Word 文件', 'warn'); return; }
+  const title = document.getElementById('docTitle').value.trim() || '未命名文章';
+  const template = document.getElementById('template_id').value;
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⚡ 发布中…';
+  log2('🚀 文档发布启动…');
+
+  try {
+    // Step 1: 解析
+    log2('→ 解析 Word 文档…');
+    const upR = await fetch('/api/upload', {
+      method: 'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({file_base64: uploadedFileBase64}),
+    });
+    const upD = await upR.json();
+    if (upD.status !== 'ok') { log2('❌ 解析失败: ' + upD.message, 'error'); return; }
+    log2('✅ 文档解析完成（' + upD.word_count + ' 字）', 'ok');
+    const md = upD.markdown;
+
+    // Step 2: 排版
+    log2('→ AI 排版中…');
+    const fmtR = await fetch('/api/format', {
+      method: 'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({markdown: md, template_id: template, account_name: '银枢局'}),
+    });
+    const fmtD = await fmtR.json();
+    if (fmtD.status !== 'ok') { log2('❌ 排版失败: ' + fmtD.message, 'error'); return; }
+    log2('✅ 排版完成 [' + fmtD.html_length + ' 字符]', 'ok');
+
+    // Step 3: 发布
+    log2('→ 推送公众号草稿…');
+    const pubR = await fetch('/api/publish', {
+      method: 'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({title, html: fmtD.html, account_id: document.getElementById('account_id').value}),
+    });
+    const pubD = await pubR.json();
+    if (pubD.status === 'ok') {
+      log2('🎉 「' + title + '」已推送至公众号后台！', 'ok');
+      if (pubD.preview_url) log2('🔗 ' + pubD.preview_url, 'info');
+    } else {
+      log2('❌ 发布失败: ' + pubD.message, 'error');
+    }
+  } catch(e) { log2('❌ 全链路失败: ' + e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = '🚀 立即发布'; }
+}
+
+// ── 文档预览 ─────────────────────────────────────────────────
+async function doDocPreview() {
+  if (!uploadedFileBase64) { log2('⚠️ 请先上传 Word 文件', 'warn'); return; }
+  log2('📄 解析并预览…');
+  try {
+    const upR = await fetch('/api/upload', {
+      method: 'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({file_base64: uploadedFileBase64}),
+    });
+    const upD = await upR.json();
+    if (upD.status !== 'ok') { log2('❌ ' + upD.message, 'error'); return; }
+
+    const fmtR = await fetch('/api/format', {
+      method: 'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        markdown: upD.markdown,
+        template_id: document.getElementById('template_id').value,
+        account_name: '银枢局',
+      }),
+    });
+    const fmtD = await fmtR.json();
+    if (fmtD.status === 'ok') {
+      document.getElementById('preview').style.display = 'block';
+      document.getElementById('previewFrame').srcdoc = fmtD.html;
+      log2('👁 预览已生成', 'ok');
+    } else {
+      log2('❌ 预览失败: ' + fmtD.message, 'error');
+    }
+  } catch(e) { log2('❌ ' + e.message, 'error'); }
+}
+
 </script>
 </body>
 </html>`;
@@ -269,6 +488,9 @@ export default async function handler(req, res) {
   const action = body.action || '';
 
   // 分发到对应模块
+  if (action === 'upload' || req.url?.includes('/upload')) {
+    return uploadHandler(req, res);
+  }
   if (action === 'research' || req.url?.includes('/research')) {
     return researchHandler(req, res);
   }
