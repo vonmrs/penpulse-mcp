@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(_root, "modules"))
 
 async def app(scope, receive, send):
     method = scope.get("method", "GET")
+    # /api/xxx 或 /xxx 都归业务逻辑处理
     path = scope.get("path", "/")
 
     cors = [
@@ -31,23 +32,26 @@ async def app(scope, receive, send):
         await send({"type": "http.response.body", "body": b""})
         return
 
-    # 首页 → 返回欢迎信息
-    if path in ("/", "/index.html"):
-        body = json.dumps({
-            "service": "PenPulse",
-            "status": "ok",
-            "message": "Vercel Python runtime 运行正常",
-            "version": "1.0.0",
-            "endpoints": {
-                "GET /": "本欢迎信息",
-                "POST /": "处理 API 请求，参数: action={health,research,format,publish,pipeline}"
-            }
-        }, ensure_ascii=False).encode()
-        await send({"type": "http.response.start", "status": 200, "headers": cors})
-        await send({"type": "http.response.body", "body": body})
+    # GET / → 返回前端页面
+    if method == "GET" and path in ("/", "/index.html"):
+        html_path = os.path.join(_root, "index.html")
+        try:
+            with open(html_path, "rb") as f:
+                html_body = f.read()
+        except Exception:
+            html_body = b"<h1>PenPulse · index.html not found</h1>"
+        await send({
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [
+                (b"Access-Control-Allow-Origin", b"*"),
+                (b"Content-Type", b"text/html; charset=utf-8"),
+            ],
+        })
+        await send({"type": "http.response.body", "body": html_body})
         return
 
-    # POST → 业务逻辑
+    # POST → 业务逻辑（所有路径）
     if method == "POST":
         body = await receive()
         try:
