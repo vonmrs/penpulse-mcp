@@ -1,57 +1,135 @@
 /**
- * upload.js · Word/docx 文档解析
- * 将用户上传的 .docx 文件转为 Markdown 纯文本
- * Vercel Node.js Serverless Function
+ * upload.js · Word/docx 文档解析（纯 Node.js 内置库版）
+ * .docx = ZIP 容器（PK 头）+ deflate 压缩的 XML
+ * 使用内置 zlib 解压，无需第三方依赖
  */
 
-import mammoth from 'mammoth';
+import zlib from 'zlib';
+import { promisify } from 'util';
+const gunzip = promisify(zlib.unzip);
 
-// ── 解析请求体（multipart/form-data）───────────────────────────
-// Vercel Node.js 支持 req.files 和 req.body
-function parseFormData(req) {
-  // 如果 Vercel 已自动解析 multipart（某些配置下）
-  if (req.files && req.files.media) {
-    const file = req.files.media;
-    return { filename: file.name, buffer: file.buffer, mimetype: file.mimetype };
-  }
-  return null;
-}
+/**
+ * 从 ZIP buffer 中提取指定文件的解压内容
+ * ZIP 格式：每个文件 = 本地文件头 + 压缩数据
+ */
+function extractFileFromZip(buffer, targetName) {
+  let offset = 0;
+  const name = targetName.replace(/\\/g, '/'); // Windows path normalization
 
-// ── base64 上传（前端传 base64 更稳定）────────────────────────
-async function parseDocxFromBase64(base64Str) {
-  try {
-    const buffer = Buffer.from(base64Str, 'base64');
-    const result = await mammoth.extractRawText({ buffer });
-    const text = result.value; // 纯文本
-    const messages = result.messages;
-    if (messages.length > 0) {
-      console.warn('mammoth 警告:', messages.map(m => m.message).join('; '));
+  while (offset < buffer.length) {
+    // ZIP 本地文件头签名: 0x04034b50 (little-endian: 50 4b 03 04)
+    if (buffer.readUInt32LE(offset) !== 0x04034b50) break;
+
+    const versionNeeded = buffer.readUInt16LE(offset + 4);
+    const flags = buffer.readUInt16LE(offset + 6);
+    const compression = buffer.readUInt16LE(offset + 8);
+    const compressedSize = buffer.readUInt32LE(offset + 18);
+    const nameLen = buffer.readUInt16LE(offset + 26);
+    const extraLen = buffer.readUInt16LE(offset + 28);
+
+    const nameBytes = buffer.slice(offset + 30, offset + 30 + nameLen);
+    const entryName = nameBytes.toString('utf8').replace(/\\/g, '/');
+    const dataStart = offset + 30 + nameLen + extraLen;
+
+    if (entryName === name) {
+      const compressedData = buffer.slice(dataStart, dataStart + compressedSize);
+      let decompressed;
+
+      if (compression === 0) {
+        // 不压缩
+        decompressed = compressedData;
+      } else if (compression === 8) {
+        // DEFLATE
+        decompressed = zlib.inflateSync(compressedData);
+      } else if (compression === 9) {
+        // DEFLATE64 (less common, try raw inflate)
+        decompressed = zlib.inflateSync(compressedData);
+      } else {
+        throw new Error(`不支持的压缩方式: ${compression}`);
+      }
+
+      return decompressed.toString('utf8');
     }
-    return { text, warnings: messages.map(m => m.message) };
-  } catch (e) {
-    throw new Error(`文档解析失败: ${e.message}`);
+
+    // 移动到下一个条目（对齐到偶数字节）
+    offset = dataStart + compressedSize;
+    if (offset % 2 !== 0) offset++;
   }
+
+  return null; // 没找到
 }
 
-// ── 简易 Markdown 化 ─────────────────────────────────────────
+/**
+ * 解析 docx base64 → 纯文本
+ */
+function parseDocxFromBase64(base64Str) {
+  const buffer = Buffer.from(base64Str, 'base64');
+
+  // 校验 ZIP 头
+  if (buffer[0] !== 0x50 || buffer[1] !== 0x4B) {
+    throw new Error('非 .docx 文件格式（需要 Word 2007+ 的 .docx）');
+  }
+
+  const xml = extractFileFromZip(buffer, 'word/document.xml');
+  if (!xml) {
+    throw new Error('文档结构异常：找不到 word/document.xml');
+  }
+
+  return extractTextFromXml(xml);
+}
+
+/**
+ * 从 Word XML 提取段落纯文本
+ */
+function extractTextFromXml(xml) {
+  const paras = [];
+  const paraRegex = /<w:p[ >][\s\S]*?<\/w:p>/g;
+  let match;
+
+  while ((match = paraRegex.exec(xml)) !== null) {
+    const tMatches = [...match[0].matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)];
+    const text = tMatches.map(m => m[1]
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#xA;/g, '\n')
+      .replace(/<[^>]+>/g, '')
+    ).join('');
+    if (text.trim()) paras.push(text.trim());
+  }
+
+  return paras.join('\n');
+}
+
+/**
+ * 简易 Markdown 化
+ */
 function toMarkdown(text) {
-  const lines = text.split('\n').filter(l => l.trim());
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
   const md = [];
-  for (const line of lines) {
-    const t = line.trim();
+
+  for (const raw of lines) {
+    const t = raw.trim();
     if (!t) { md.push(''); continue; }
-    // 检测标题特征（全是短句+句号/叹号/问号，字数适中）
-    if (t.length <= 30 && /[。！？.?!]$/.test(t) && !t.includes('，') && !t.includes('、')) {
+
+    // 标题
+    if (t.length <= 40 && /[。！？.?!！?]$/.test(t) && t.length > 4) {
       md.push(`## ${t}`);
-    } else if (t.length <= 60 && /^[一二三四五六七八九十]、/.test(t)) {
-      // 列表项
-      md.push(`- ${t.replace(/^[一二三四五六七八九十]、/, '')}`);
-    } else {
-      // 普通段落
-      md.push(t);
+      continue;
     }
+
+    // 列表
+    if (/^[一二三四五六七八九十\d][、.．)]\s/.test(t) || /^[-–—]\s/.test(t)) {
+      const item = t.replace(/^[一二三四五六七八九十\d][、.．)]\s*/, '').replace(/^[-–—]\s*/, '');
+      md.push(`- ${item}`);
+      continue;
+    }
+
+    md.push(t);
   }
-  return md.join('\n\n');
+
+  return md.join('\n');
 }
 
 // ── 主函数 ───────────────────────────────────────────────────
@@ -65,41 +143,39 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: 'method not allowed' });
     }
 
-    // 优先从 JSON body 取 base64
     let body = {};
     try {
       const raw = req.body;
-      if (typeof raw === 'string') body = JSON.parse(raw);
+      if (!raw) {}
+      else if (typeof raw === 'string') body = JSON.parse(raw);
       else if (Buffer.isBuffer(raw)) body = JSON.parse(raw.toString());
-      else if (raw && typeof raw === 'object') body = raw;
+      else if (typeof raw === 'object') body = raw;
     } catch {}
 
     const { file_base64, filename } = body;
 
     if (!file_base64) {
-      return res.status(200).json({ status: 'error', message: '缺少 file_base64 参数（请将文件转为 base64 后传参）' });
+      return res.status(200).json({
+        status: 'error',
+        message: '缺少 file_base64 参数（前端 FileReader 已自动转换）',
+        usage: 'POST /api/upload with { file_base64: "<base64 string>" }',
+      });
     }
 
-    // 校验文件类型（base64 头判断）
-    const firstBytes = atob(file_base64.slice(0, 8));
-    const isDocx = firstBytes.startsWith('PK\x03\x04'); // docx = zip format
-
-    if (!isDocx) {
-      return res.status(200).json({ status: 'error', message: '仅支持 .docx 文件（Word 2007+格式），请确认文件格式。' });
-    }
-
-    const { text, warnings } = await parseDocxFromBase64(file_base64);
+    const text = parseDocxFromBase64(file_base64);
     const markdown = toMarkdown(text);
     const wordCount = text.replace(/\s/g, '').length;
+    const firstLine = text.split(/\r?\n/)[0].trim().slice(0, 64);
 
     return res.status(200).json({
       status: 'ok',
       markdown,
-      text,          // 原始纯文本
+      text,
       word_count: wordCount,
+      char_count: text.length,
+      default_title: firstLine,
       filename: filename || '文档.docx',
-      warnings: warnings.slice(0, 3),
-      usage: '将返回的 markdown 字段传给 /api/format 生成 HTML，或直接传给 /api/pipeline',
+      usage: '将 markdown 传给 /api/format → /api/publish',
     });
   } catch (e) {
     return res.status(200).json({ status: 'error', message: e.message });
