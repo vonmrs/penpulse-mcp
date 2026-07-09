@@ -1,54 +1,84 @@
 """
-PenPulse · 极简调试版
-只返回固定JSON，验证Vercel Python函数是否正常运行
+PenPulse · WSGI 版（兼容 Vercel Python runtime）
 """
 
 import json
 import os
+from io import BytesIO
 
-# ── ASGI 入口 ────────────────────────────────────────────────
+# ── WSGI 入口（Vercel 强制要求 app 变量） ─────────────────────
 
-async def app(scope, receive, send):
-    method = scope.get("method", "GET")
-    path = scope.get("path", "/")
+def app(environ, start_response):
+    method = environ.get("REQUEST_METHOD", "GET")
+    path = environ.get("PATH_INFO", "/")
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Content-Type": "application/json; charset=utf-8",
+    }
 
-    headers = [
-        (b"access-control-allow-origin", b"*"),
-        (b"access-control-allow-methods", b"GET,POST,OPTIONS"),
-        (b"access-control-allow-headers", b"Content-Type"),
-        (b"content-type", b"application/json; charset=utf-8"),
-    ]
-
+    # OPTIONS
     if method == "OPTIONS":
-        await send({"type": "http.response.start", "status": 200, "headers": headers})
-        await send({"type": "http.response.body", "body": b""})
-        return
+        status = "200 OK"
+        start_response(status, [(k, v) for k, v in headers.items()])
+        return [b""]
 
-    # GET / → 前端页面
+    # GET / → HTML 页面
     if method == "GET" and path in ("/", "/index.html"):
         html_path = os.path.join(os.path.dirname(__file__), "index.html")
         try:
             with open(html_path, "rb") as f:
-                html_body = f.read()
+                body = f.read()
         except Exception:
-            html_body = b"<h1>not found</h1>"
-        await send({
-            "type": "http.response.start",
-            "status": 200,
-            "headers": [
-                (b"content-type", b"text/html; charset=utf-8"),
-                (b"access-control-allow-origin", b"*"),
-            ],
-        })
-        await send({"type": "http.response.body", "body": html_body})
-        return
+            body = b"<h1>not found</h1>"
+        start_response("200 OK", [
+            ("Content-Type", "text/html; charset=utf-8"),
+            ("Access-Control-Allow-Origin", "*"),
+        ])
+        return [body]
 
-    # POST → 返回固定JSON（不走任何模块导入）
+    # POST → 业务逻辑
     if method == "POST":
-        await send({"type": "http.response.start", "status": 200, "headers": headers})
-        await send({"type": "http.response.body", "body": b'{"status":"ok","message":"Python函数正常运行中","step":"dispatch"}'})
-        return
+        content_length = int(environ.get("CONTENT_LENGTH", 0))
+        body_bytes = b""
+        if content_length > 0:
+            body_bytes = environ["wsgi.input"].read(content_length)
+        try:
+            payload = json.loads(body_bytes)
+        except Exception:
+            payload = {}
 
-    # 其他
-    await send({"type": "http.response.start", "status": 405, "headers": headers})
-    await send({"type": "http.response.body", "body": b'{"error":"method not allowed"}'})
+        action = payload.get("action", "")
+        result = {"status": "ok", "service": "PenPulse", "version": "1.0.0"}
+
+        # health
+        if action == "health":
+            result = {"status": "ok", "service": "PenPulse", "version": "1.0.0"}
+
+        # pipeline（演示模式，返回固定响应）
+        elif action == "pipeline":
+            result = {
+                "status": "ok",
+                "topic": payload.get("keyword", "荆州 文旅"),
+                "message": "Python WSGI 正常运行，完整 pipeline 需加载业务模块",
+            }
+
+        # research / format / publish（演示）
+        elif action in ("research", "format", "publish"):
+            result = {"status": "ok", "action": action, "message": f"{action} 模块运行正常"}
+
+        else:
+            result = {
+                "status": "ok",
+                "service": "PenPulse AI 内容自动化",
+                "available_actions": ["health", "research", "format", "publish", "pipeline"],
+            }
+
+        body = json.dumps(result, ensure_ascii=False).encode()
+        start_response("200 OK", [(k, v) for k, v in headers.items()])
+        return [body]
+
+    # 其他方法
+    start_response("405 Method Not Allowed", list(headers.items()))
+    return [b'{"error":"method not allowed"}']

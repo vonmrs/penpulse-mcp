@@ -1,2 +1,6 @@
+[project]
+name = "penpulse"
+version = "1.0.0"
+
 [tool.vercel]
-entrypoint = "app.py"
+runtime = "python3.12"
