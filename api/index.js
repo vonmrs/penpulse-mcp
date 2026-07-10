@@ -298,7 +298,8 @@ async function doDocPreview() {
   const title = document.getElementById('docTitle').value.trim();
   try {
     const d = await apiCall('upload', {file_base64: uploadedFileBase64, title: title || undefined});
-    if (d && d.error) { log2('❌ 解析失败: '+d.error, 'error'); return; }
+    if (d && d.status === 'error') { log2('❌ 解析失败: '+(d.message||d.error||''), 'error'); return; }
+    if (!d.markdown) { log2('❌ 解析结果异常：markdown 为空', 'error'); return; }
     window._docMarkdown = d.markdown;
     if (!title && d.text) {
       const firstLine = d.text.split(/[\\n\\r]+/)[0].trim();
@@ -322,7 +323,8 @@ async function doDocPipeline(evt) {
       log2('→ 解析文档…');
       const title = document.getElementById('docTitle').value.trim();
       const d = await apiCall('upload', {file_base64: uploadedFileBase64, title: title || undefined});
-      if (d && d.error) { log2('❌ 解析失败: '+d.error, 'error'); btn.disabled = false; btn.textContent = '⚡ 解析 → 排版 → 发布'; return; }
+      if (d && d.status === 'error') { log2('❌ 解析失败: '+(d.message||d.error||''), 'error'); btn.disabled = false; btn.textContent = '⚡ 解析 → 排版 → 发布'; return; }
+      if (!d.markdown) { log2('❌ 解析结果异常：markdown 为空', 'error'); btn.disabled = false; btn.textContent = '⚡ 解析 → 排版 → 发布'; return; }
       md = d.markdown;
       window._docMarkdown = md;
       if (!title && d.text) {
