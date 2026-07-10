@@ -1,198 +1,149 @@
-/**
- * api/index.js · Vercel Serverless Function 统一入口
- * GET  /  → 返回前端页面
- * POST /api/research  → 选题搜索
- * POST /api/format    → 格式转换
- * POST /api/publish   → 公众号发布
- * POST /api/pipeline  → 全链路（research→format→publish）
- */
-
-import researchHandler from './research.js';
-import formatHandler from './format.js';
-import publishHandler from './publish.js';
-import uploadHandler from './upload.js';
-
-// 前端页面（内联避免额外文件依赖）
-const FRONTEND_HTML = `<!DOCTYPE html>
+let FRONTEND_HTML;
+const _htmlTemplate = () => {
+  if (FRONTEND_HTML) return FRONTEND_HTML;
+  // Build once, cache forever
+  FRONTEND_HTML = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PenPulse · 银枢局内容中台</title>
+<title>PenPulse · 笔脉</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh}
-.container{max-width:900px;margin:0 auto;padding:24px 16px}
-header{text-align:center;padding:40px 0 32px;border-bottom:1px solid #30363d;margin-bottom:32px}
-header h1{font-size:28px;font-weight:700;color:#58a6ff;letter-spacing:1px}
-header p{color:#8b949e;font-size:14px;margin-top:8px}
-header .badge{display:inline-block;background:#21262d;border:1px solid #30363d;border-radius:20px;padding:4px 12px;font-size:11px;color:#58a6ff;margin-top:12px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
-@media(max-width:640px){.grid{grid-template-columns:1fr}}
-.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px}
-.card h3{font-size:14px;color:#e6edf3;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.card h3 span{width:24px;height:24px;background:#21262d;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px}
-label{display:block;font-size:12px;color:#8b949e;margin-bottom:6px;margin-top:12px}
-input,select,textarea{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 12px;color:#c9d1d9;font-size:14px;outline:none}
-input:focus,select:focus,textarea:focus{border-color:#58a6ff}
-textarea{min-height:100px;resize:vertical}
-.btn{display:inline-flex;align-items:center;gap:6px;background:#238636;border:none;border-radius:8px;color:#fff;padding:10px 20px;font-size:14px;cursor:pointer;transition:background .2s}
-.btn:hover{background:#2ea043}
-.btn-secondary{background:#21262d;border:1px solid #30363d}
-.btn-secondary:hover{background:#30363d}
-.btn-group{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
-.tabs{display:flex;gap:2px;background:#21262d;border-radius:10px;padding:3px;margin-bottom:20px;width:fit-content}
-.tab-btn{background:none;border:none;border-radius:7px;color:#8b949e;font-size:13px;padding:8px 20px;cursor:pointer;transition:all .2s;font-weight:500}
-.tab-btn:hover{color:#c9d1d9}
-.tab-btn.active{background:#30363d;color:#58a6ff;font-weight:600}
-.tab-content{display:none}
-.tab-content.active{display:block}
-.upload-zone{border:2px dashed #30363d;border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-top:8px}
-.upload-zone:hover,.upload-zone.dragover{border-color:#58a6ff;background:rgba(88,166,255,0.05)}
-.upload-zone input{display:none}
-.upload-zone .icon{font-size:32px;margin-bottom:8px}
-.upload-zone .hint{font-size:12px;color:#8b949e;margin-top:4px}
-.upload-zone .filename{font-size:13px;color:#3fb950;font-weight:600;margin-top:6px}
-.file-info{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;margin-top:8px;display:none}
-.file-info .fi-name{color:#c9d1d9;font-size:13px;font-weight:600}
-.file-info .fi-meta{color:#8b949e;font-size:11px;margin-top:4px}
-.dash-row{display:flex;align-items:center;gap:10px;margin:8px 0}
-.dash-label{flex-shrink:0;width:70px;font-size:12px;color:#8b949e}
-.dash-value{font-size:13px;color:#c9d1d9}
-.warn-tag{display:inline-block;background:#d299220d;border:1px solid #d2992240;color:#d29922;font-size:11px;padding:2px 8px;border-radius:4px;margin:2px}
-#log{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;min-height:120px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:12px;line-height:1.8;max-height:300px;overflow-y:auto;margin-top:20px}
-.log-line{margin:2px 0}
-.log-ok{color:#3fb950}.log-error{color:#f85149}.log-info{color:#58a6ff}.log-warn{color:#d29922}
-.step{display:inline-block;width:20px;height:20px;border-radius:50%;background:#30363d;color:#8b949e;font-size:11px;display:inline-flex;align-items:center;justify-content:center;margin-right:8px}
-.step.done{background:#238636;color:#fff}
-.step.active{background:#58a6ff;color:#0d1117}
-.step-row{display:flex;align-items:center;margin:6px 0;font-size:13px}
-#preview{display:none;background:#fff;border-radius:12px;margin-top:24px;overflow:hidden}
-#preview iframe{width:100%;height:600px;border:none;display:block}
-#previewBar{padding:12px 16px;background:#f6f8fa;border-top:1px solid #d0d7de;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#57606a}
-#previewBar a{color:#0969da;text-decoration:none}
-footer{text-align:center;padding:32px 0;color:#484f58;font-size:12px;border-top:1px solid #21262d;margin-top:48px}
-footer a{color:#58a6ff;text-decoration:none}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0d1117; color:#c9d1d9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif; min-height:100vh; }
+.container { max-width:1200px; margin:0 auto; padding:20px; }
+header { text-align:center; padding:30px 0 20px; }
+header h1 { font-size:28px; background:linear-gradient(135deg,#58a6ff,#bc8cff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+header p { color:#8b949e; font-size:14px; margin-top:6px; }
+.card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:24px; margin-bottom:20px; }
+.card h2 { font-size:16px; color:#f0f6fc; margin-bottom:16px; font-weight:600; }
+.card label { display:block; font-size:13px; color:#8b949e; margin-bottom:4px; }
+.card input,.card select,.card textarea { width:100%; padding:8px 12px; background:#0d1117; border:1px solid #30363d; border-radius:6px; color:#c9d1d9; font-size:14px; outline:none; transition:border-color .2s; }
+.card input:focus,.card select:focus { border-color:#58a6ff; }
+.card button { padding:8px 24px; background:#238636; border:none; border-radius:6px; color:#fff; font-size:14px; cursor:pointer; transition:background .2s; font-weight:500; }
+.card button:hover { background:#2ea043; }
+.card button:disabled { background:#1b4721; cursor:not-allowed; }
+.row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+@media(max-width:640px){.row{grid-template-columns:1fr;}}
+#log { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:12px; font-size:12px; font-family:'JetBrains Mono','SF Mono','Menlo',monospace; height:200px; overflow-y:auto; line-height:1.6; margin-top:12px; }
+.log-line { padding:2px 0; }
+.log-ok { color:#3fb950; }
+.log-error { color:#f85149; }
+.log-warn { color:#d29922; }
+.log-info { color:#8b949e; }
+.steps { display:flex; gap:4px; margin-bottom:12px; }
+.step { flex:1; padding:6px; text-align:center; font-size:11px; border-radius:6px; background:#21262d; color:#484f58; transition:all .3s; }
+.step.active { background:#1f6feb33; color:#58a6ff; border:1px solid #1f6feb; }
+.step.done { background:#23863633; color:#3fb950; border:1px solid #238636; }
+#topics { margin-top:12px; }
+.tab-bar { display:flex; gap:0; margin-bottom:20px; border-bottom:2px solid #21262d; }
+.tab-btn { flex:1; padding:12px 16px; text-align:center; font-size:14px; cursor:pointer; background:transparent; border:none; color:#8b949e; font-weight:500; transition:all .2s; position:relative; }
+.tab-btn:hover { color:#c9d1d9; background:#161b2211; }
+.tab-btn.active { color:#f0f6fc; }
+.tab-btn.active::after { content:''; position:absolute; bottom:-2px; left:0; right:0; height:2px; background:#58a6ff; border-radius:1px; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+.upload-zone { border:2px dashed #30363d; border-radius:12px; padding:40px; text-align:center; cursor:pointer; transition:all .2s; margin-bottom:16px; }
+.upload-zone:hover { border-color:#58a6ff; background:#161b2233; }
+.upload-zone.dragover { border-color:#3fb950; background:#23863611; }
+.upload-zone p { color:#8b949e; font-size:14px; margin-top:8px; }
+.upload-zone .icon { font-size:36px; }
+#parsePreview { white-space:pre-wrap; word-break:break-all; }
+footer { text-align:center; padding:20px; color:#484f58; font-size:12px; }
+footer a { color:#58a6ff; text-decoration:none; }
 </style>
 </head>
 <body>
+
 <div class="container">
 <header>
-  <h1>PenPulse</h1>
-  <p>AI 内容自动化中台 · 让机器给你打工</p>
-  <div class="badge">⚡ 全链路 · 选题 → 写作 → 排版 → 发布</div>
+  <h1>⚡ PenPulse · 笔脉</h1>
+  <p>AI 内容自动化工作室 · 选题 → 写作 → 排版 → 封面 → 发布</p>
 </header>
 
-<div class="grid">
-<div class="card">
-  <h3><span>🔍</span> 选题搜索</h3>
-  <label>关键词</label>
-  <input id="keyword" value="荆州 文旅" placeholder="例如：荆州 经济">
-  <label>搜索范围（天）</label>
-  <input id="days" type="number" value="7" min="1" max="30">
-  <div class="btn-group">
-    <button class="btn" onclick="doSearch()">🔍 搜索选题</button>
-  </div>
-  <div id="topics" style="margin-top:12px;max-height:200px;overflow-y:auto;"></div>
-</div>
-
-<div class="card">
-  <h3><span>📝</span> 发布配置</h3>
-  <label>公众号账号</label>
-  <select id="account_id">
-    <option value="yin_shuju">银枢局（默认）</option>
-  </select>
-  <label>排版模板（朝鉴/棱镜各6款）</label>
-  <select id="template_id">
-    <optgroup label="— 朝鉴（浅色）—">
-      <option value="journal">001 晨报头版（默认）</option>
-      <option value="magazine">002 杂志封面</option>
-      <option value="cards">003 卡片瀑布</option>
-      <option value="dashboard">004 数据仪表盘</option>
-      <option value="minimal">005 极简留白</option>
-      <option value="chat">006 对话气泡</option>
-    </optgroup>
-    <optgroup label="— 棱镜（深色）—">
-      <option value="terminal">001 终端界面</option>
-      <option value="editor">002 代码编辑器</option>
-      <option value="neon">003 霓虹赛博</option>
-      <option value="glass">004 毛玻璃卡片</option>
-      <option value="geek">005 极客简约</option>
-      <option value="hologram">006 全息投影</option>
-    </optgroup>
-  </select>
-  <label>封面图（可选，base64 或留空）</label>
-  <textarea id="cover_base64" placeholder="粘贴 base64 图片（可选，留空则不设置封面）"></textarea>
-</div>
-</div>
-
-<!-- 链路切换 Tab -->
-<div class="tabs">
+<div class="tab-bar">
   <button class="tab-btn active" id="tab1" onclick="switchTab(1)">🤖 链路一：AI全链路</button>
   <button class="tab-btn" id="tab2" onclick="switchTab(2)">📄 链路二：文档导入</button>
 </div>
 
 <!-- 链路一：AI全链路 -->
 <div class="tab-content active" id="content1">
-<div class="card">
-  <h3><span>🚀</span> 全链路执行</h3>
-  <div class="step-row"><div class="step" id="s1">1</div>选题搜索</div>
-  <div class="step-row"><div class="step" id="s2">2</div>AI 写作</div>
-  <div class="step-row"><div class="step" id="s3">3</div>AI 排版</div>
-  <div class="step-row"><div class="step" id="s4">4</div>AI 封面</div>
-  <div class="step-row"><div class="step" id="s5">5</div>推送草稿</div>
-  <div class="btn-group">
-    <button class="btn" onclick="doPipeline(event)">▶ 一键运行全链路</button>
-    <button class="btn btn-secondary" onclick="doPreview(event)">👁 预览当前排版</button>
+  <div class="card">
+    <h2>🔍 第一步：选题搜索</h2>
+    <div class="row">
+      <div>
+        <label>关键词</label>
+        <input type="text" id="keyword" placeholder="例如：荆州企业融资" value="">
+      </div>
+      <div>
+        <label>时间范围（天）</label>
+        <input type="number" id="days" value="7" min="1" max="90">
+      </div>
+    </div>
+    <div>
+      <label>文章研究方向（可选）</label>
+      <select id="direction">
+        <option value="">智能推荐</option>
+        <option value="industry">产业经济</option>
+        <option value="policy">政策分析</option>
+        <option value="tech">技术趋势</option>
+        <option value="finance">财经解读</option>
+      </select>
+    </div>
+    <div style="margin-top:12px">
+      <label>模板风格</label>
+      <select id="template_id">
+        <option value="">智能推荐</option>
+        <option value="editorial">001 评论头版</option>
+        <option value="magazine">002 杂志封面</option>
+        <option value="terminal">003 终端界面</option>
+        <option value="minimal">005 极简留白</option>
+        <option value="card">004 卡片瀑布</option>
+        <option value="hologram">006 全息投影</option>
+      </select>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="doSearch()">🔍 搜索选题</button>
+      <button onclick="doPipeline(event)" style="background:#1f6feb" id="runBtn">⚡ 运行全链路</button>
+    </div>
+    <div id="topics"></div>
   </div>
-  <div id="log"><div class="log-info log-line">PenPulse 就绪，等待指令…</div></div>
+
+  <div class="card">
+    <h2>📋 进度</h2>
+    <div class="steps">
+      <div class="step" id="s1">1. 选题</div>
+      <div class="step" id="s2">2. 写作</div>
+      <div class="step" id="s3">3. 排版</div>
+      <div class="step" id="s4">4. 封面</div>
+      <div class="step" id="s5">5. 发布</div>
+    </div>
+    <div id="log"><div class="log-line log-info">就绪。</div></div>
+  </div>
 </div>
-
-
-</div><!-- end tab1 -->
 
 <!-- 链路二：文档导入 -->
 <div class="tab-content" id="content2">
-<div class="card">
-  <h3><span>📄</span> 导入 Word 文档</h3>
-  <p style="font-size:12px;color:#8b949e;margin-bottom:12px">上传本地 .docx 文件（Word 2007+格式），自动解析为 Markdown，再经 AI 排版后发布至公众号。</p>
-
-  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-    <input type="file" id="fileInput" accept=".docx" onchange="handleFileSelect(this)">
-    <div class="icon">📂</div>
-    <div class="hint">点击选择 .docx 文件，或拖拽到此处</div>
-    <div class="hint" style="margin-top:4px;font-size:11px">仅支持 .docx 格式（Word 2007+）</div>
-    <div class="filename" id="fileName" style="display:none"></div>
+  <div class="card">
+    <h2>📤 上传文档</h2>
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">📄</div>
+      <p>点击上传或拖拽 .docx 文件</p>
+      <input type="file" id="fileInput" accept=".docx" style="display:none" onchange="handleFileSelect(this)">
+    </div>
+    <div style="margin-bottom:12px">
+      <label>文章标题（可选，留空自动从内容提取）</label>
+      <input type="text" id="docTitle" placeholder="输入标题…">
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="doDocPreview()">👁️ 预览解析</button>
+      <button onclick="doDocPipeline(event)" style="background:#1f6feb">⚡ 解析 → 排版 → 发布</button>
+    </div>
+    <div style="margin-top:12px">
+      <label>解析预览</label>
+      <div id="parsePreview" style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;font-size:12px;color:#c9d1d9;max-height:150px;overflow-y:auto;line-height:1.6;"></div>
+    </div>
   </div>
-
-  <div class="file-info" id="fileInfo">
-    <div class="fi-name" id="fiName"></div>
-    <div class="fi-meta" id="fiMeta"></div>
-  </div>
-
-  <label style="margin-top:16px">文章标题</label>
-  <input id="docTitle" placeholder="自动从文档提取，或手动填写">
-
-  <div class="btn-group" style="margin-top:16px">
-    <button class="btn" onclick="doUpload()">📄 解析文档</button>
-    <button class="btn btn-secondary" onclick="doDocPipeline(event)">🚀 立即发布</button>
-    <button class="btn btn-secondary" onclick="doDocPreview(event)">👁 预览排版</button>
-  </div>
-
-  <div id="parseResult" style="display:none;margin-top:16px">
-    <div style="font-size:12px;color:#8b949e;margin-bottom:6px">📝 解析结果预览（前 500 字）：</div>
-    <div id="parsePreview" style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;font-size:12px;color:#c9d1d9;max-height:150px;overflow-y:auto;line-height:1.6;"></div>
-  </div>
-
-  <div id="log2"><div class="log-info log-line">📄 文档导入就绪，请上传 Word 文件…</div></div>
-</div>
-</div><!-- end tab2 -->
-<div id="preview">
-  <div id="previewBar">
-    <span>📱 公众号预览效果</span>
-    <a href="https://mp.weixin.qq.com" target="_blank">前往公众号后台 →</a>
-  </div>
-  <iframe id="previewFrame"></iframe>
 </div>
 
 <footer>
@@ -232,14 +183,14 @@ async function doSearch() {
   try {
     const r = await fetch('/api/research', {
       method: 'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({keyword:kw, days}),
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({keyword: kw, days}),
     });
     const d = await r.json();
     const el = document.getElementById('topics');
     el.innerHTML = '';
     (d.topics || []).slice(0,5).forEach(t => {
-      el.innerHTML += '<div style="padding:8px 0;border-bottom:1px solid #30363d;cursor:pointer" onclick="document.getElementById(\'keyword\').value=this.dataset.kw" data-kw="'+t.title+'"><div style="font-size:13px;color:#c9d1d9">'+t.title+'</div><div style="font-size:11px;color:#8b949e;margin-top:2px">'+t.source+' · '+t.tag+'</div></div>';
+      el.innerHTML += '<div style="padding:8px 0;border-bottom:1px solid #30363d;cursor:pointer" onclick="document.getElementById(\\'keyword\\').value=this.dataset.kw" data-kw="'+t.title+'"><div style="font-size:13px;color:#c9d1d9">'+t.title+'</div><div style="font-size:11px;color:#8b949e;margin-top:2px">'+t.source+' · '+t.tag+'</div></div>';
     });
     log('✅ 找到 '+d.count+' 条选题', 'ok');
   } catch(e) { log('❌ 搜索失败: '+e.message, 'error'); }
@@ -254,51 +205,26 @@ async function doPipeline(evt) {
   log('🚀 全链路启动：关键词「'+kw+'」');
   try {
     setStep(1,'active'); log('→ 选题搜索中…');
+    const research = await apiCall('research', {keyword: kw});
     setStep(1,'done');
     setStep(2,'active'); log('→ AI 写作中（演示模式）…');
-    const demoMd = '# '+kw+'\\n\\n> 这是演示内容。配置 OPENAI_API_KEY 后将自动调用大模型生成真实文章。\\n\\n更多内容段落。';
+    const md = '# '+kw+'\\n\\n> 这是演示内容。配置大模型 API Key 后会自动调用大模型生成真实文章。\\n\\n更多内容段落。';
     setStep(2,'done');
-    setStep(3,'active'); log('→ 格式转换中…');
-    const fmtR = await fetch('/api/format', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({markdown:demoMd, template_id:template, account_name:'银枢局'}),
-    });
-    const fmtD = await fmtR.json();
-    log('✅ 排版完成 ['+fmtD.html_length+' 字符]', 'ok');
+    setStep(3,'active'); log('→ 排版中…');
+    const formatted = await apiCall('format', {markdown: md, template: template || undefined});
     setStep(3,'done');
+    setStep(4,'active'); log('→ 生成封面…');
     setStep(4,'done');
-    setStep(5,'active'); log('→ 推送公众号草稿…');
-    const pubR = await fetch('/api/publish', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({title:kw+' 最新资讯', html:fmtD.html, account_id:'yin_shuju'}),
-    });
-    const pubD = await pubR.json();
+    setStep(5,'active'); log('→ 发布到微信公众号…');
+    const pub = await apiCall('publish', {html: formatted.html, title: formatted.title || kw, coverUrl: formatted.coverUrl || ''});
     setStep(5,'done');
-    if(pubD.status==='ok') {
-      log('✅ 草稿「'+kw+'」已推送至公众号后台！', 'ok');
-      if(pubD.preview_url) log('🔗 '+pubD.preview_url, 'info');
-      log('🎉 全链路执行完成！请在公众号后台审核发布', 'ok');
-    } else {
-      log('❌ 发布失败: '+pubD.message, 'error');
-    }
+    log('✅ 全链路完成！文章ID: '+(pub.articleId || pub.mediaId || '演示'), 'ok');
   } catch(e) {
-    log('❌ 全链路失败: '+e.message, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = '▶ 一键运行全链路';
+    log('❌ 错误: '+e.message, 'error');
+    document.getElementById('runBtn').disabled = false;
+    document.getElementById('runBtn').textContent = '⚡ 运行全链路';
   }
-}
-
-async function doPreview(evt) {
-  const md = '# 示例标题\\n\\n这是**示例正文**，演示排版效果。';
-  const template = document.getElementById('template_id').value;
-  const r = await fetch('/api/format', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({markdown:md, template_id:template, account_name:'银枢局演示'}),
-  });
-  const d = await r.json();
-  document.getElementById('preview').style.display='block';
-  document.getElementById('previewFrame').srcdoc = d.html;
-  log('👁 预览已生成', 'ok');
+  btn.disabled = false; btn.textContent = '⚡ 运行全链路';
 }
 
 // ── Tab 切换 ─────────────────────────────────────────────────
@@ -309,19 +235,14 @@ function switchTab(n) {
     const tab2 = document.getElementById('tab2');
     const c1 = document.getElementById('content1');
     const c2 = document.getElementById('content2');
-    console.log('tab1:', tab1 && tab1.className, 'tab2:', tab2 && tab2.className, 'c1:', c1 && c1.className, 'c2:', c2 && c2.className);
     if (!tab1 || !tab2 || !c1 || !c2) {
       console.error('switchTab: elements missing');
       return;
     }
-    tab1.classList.toggle('active', n === 1);
-    tab2.classList.toggle('active', n === 2);
-    // 用 style.display 做后备，防止 CSS 优先级问题
+    tab1.className = 'tab-btn' + (n === 1 ? ' active' : '');
+    tab2.className = 'tab-btn' + (n === 2 ? ' active' : '');
     c1.style.display = n === 1 ? 'block' : 'none';
     c2.style.display = n === 2 ? 'block' : 'none';
-    // classList 保留作为视觉保险
-    c1.classList.toggle('active', n === 1);
-    c2.classList.toggle('active', n === 2);
     console.log('switchTab(' + n + ') done. c1.display:', c1.style.display, 'c2.display:', c2.style.display);
   } catch(e) {
     console.error('switchTab error:', e);
@@ -341,193 +262,170 @@ function handleFileSelect(input) {
   const reader = new FileReader();
   reader.onload = function(e) {
     uploadedFileBase64 = e.target.result.split(',')[1]; // 去掉 data:... 前缀
-    document.getElementById('fileName').style.display = 'block';
-    document.getElementById('fileName').textContent = '✅ ' + file.name;
-    document.getElementById('fiName').textContent = file.name;
-    document.getElementById('fiMeta').textContent = '大小：' + (file.size / 1024).toFixed(1) + ' KB';
-    document.getElementById('fileInfo').style.display = 'block';
-    document.getElementById('parseResult').style.display = 'none';
-    log2('✅ 文件已加载：' + file.name + '（' + (file.size/1024).toFixed(1) + ' KB）', 'ok');
+    document.querySelector('#uploadZone p').textContent = '✅ '+file.name+' ('+(file.size/1024).toFixed(0)+'KB)';
   };
-  reader.onerror = function() { log2('❌ 文件读取失败', 'error'); };
   reader.readAsDataURL(file);
 }
 
-function log2(msg, type) {
-  const el = document.getElementById('log2');
-  if (!el) return;
-  const cls = type === 'ok' ? 'log-ok' : type === 'error' ? 'log-error' : 'log-info';
-  el.innerHTML += '<div class="log-line '+cls+'">'+msg+'</div>';
-  el.scrollTop = el.scrollHeight;
-}
-
-// ── 解析文档 ─────────────────────────────────────────────────
-async function doUpload() {
-  if (!uploadedFileBase64) { log2('⚠️ 请先上传 Word 文件', 'warn'); return; }
+async function doDocPreview() {
+  if (!uploadedFileBase64) { alert('请先上传文档'); return; }
   const title = document.getElementById('docTitle').value.trim();
-  log2('📄 正在解析文档…');
   try {
     const r = await fetch('/api/upload', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({file_base64: uploadedFileBase64, filename: document.getElementById('fiName').textContent}),
+      body: JSON.stringify({base64: uploadedFileBase64, title: title || undefined}),
     });
     const d = await r.json();
-    if (d.status === 'ok') {
-      window._docMarkdown = d.markdown;
-      if (!title && d.text) {
-        const firstLine = d.text.split(/[\n\r]+/)[0].trim();
-        if (firstLine.length <= 50) document.getElementById('docTitle').value = firstLine;
-      }
-      const preview = d.markdown.slice(0, 500);
-      document.getElementById('parsePreview').textContent = preview + (d.markdown.length > 500 ? '\n…' : '');
-      document.getElementById('parseResult').style.display = 'block';
-      log2('✅ 解析成功！共 ' + d.word_count + ' 字，可直接发布', 'ok');
-      if (d.warnings && d.warnings.length) {
-        d.warnings.forEach(w => log2('⚠️ ' + w, 'warn'));
-      }
-    } else {
-      log2('❌ 解析失败: ' + d.message, 'error');
+    if (d.error) { log('❌ 解析失败: '+d.error, 'error'); return; }
+    // 存回全局以便 doDocPipeline 使用
+    window._docMarkdown = d.markdown;
+    if (!title && d.text) {
+      const firstLine = d.text.split(/[\\n\\r]+/)[0].trim();
+      if (firstLine.length <= 50) document.getElementById('docTitle').value = firstLine;
     }
-  } catch(e) { log2('❌ 网络错误: ' + e.message, 'error'); }
+    const preview = d.markdown.slice(0, 500);
+    document.getElementById('parsePreview').textContent = preview + (d.markdown.length > 500 ? '\\n…' : '');
+    log('✅ 解析成功，共 '+d.markdown.length+' 字符', 'ok');
+  } catch(e) { log('❌ 解析请求失败: '+e.message, 'error'); }
 }
 
-// ── 文档发布 ─────────────────────────────────────────────────
 async function doDocPipeline(evt) {
-  console.log('doDocPipeline called, uploadedFileBase64:', uploadedFileBase64);
-  if (!uploadedFileBase64) { log2('⚠️ 请先上传 Word 文件', 'warn'); return; }
-  const title = document.getElementById('docTitle').value.trim() || '未命名文章';
-  const template = document.getElementById('template_id').value;
   const btn = (evt || event).target;
-  btn.disabled = true; btn.textContent = '⚡ 发布中…';
-  log2('🚀 文档发布启动…');
-
+  const md = window._docMarkdown;
+  if (!md) { alert('请先上传文档并预览解析'); return; }
+  btn.disabled = true; btn.textContent = '⚡ 运行中…';
+  log('🚀 文档导入链路启动…');
   try {
-    // Step 1: 解析
-    log2('→ 解析 Word 文档…');
-    const upR = await fetch('/api/upload', {
-      method: 'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({file_base64: uploadedFileBase64}),
-    });
-    const upD = await upR.json();
-    if (upD.status !== 'ok') { log2('❌ 解析失败: ' + upD.message, 'error'); return; }
-    log2('✅ 文档解析完成（' + upD.word_count + ' 字）', 'ok');
-    const md = upD.markdown;
-
-    // Step 2: 排版
-    log2('→ AI 排版中…');
-    const fmtR = await fetch('/api/format', {
-      method: 'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({markdown: md, template_id: template, account_name: '银枢局'}),
-    });
-    const fmtD = await fmtR.json();
-    if (fmtD.status !== 'ok') { log2('❌ 排版失败: ' + fmtD.message, 'error'); return; }
-    log2('✅ 排版完成 [' + fmtD.html_length + ' 字符]', 'ok');
-
-    // Step 3: 发布
-    log2('→ 推送公众号草稿…');
-    const pubR = await fetch('/api/publish', {
-      method: 'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({title, html: fmtD.html, account_id: document.getElementById('account_id').value}),
-    });
-    const pubD = await pubR.json();
-    if (pubD.status === 'ok') {
-      log2('🎉 「' + title + '」已推送至公众号后台！', 'ok');
-      if (pubD.preview_url) log2('🔗 ' + pubD.preview_url, 'info');
-    } else {
-      log2('❌ 发布失败: ' + pubD.message, 'error');
-    }
-  } catch(e) { log2('❌ 全链路失败: ' + e.message, 'error'); }
-  finally { btn.disabled = false; btn.textContent = '🚀 立即发布'; }
+    setStep(1,'done');
+    setStep(2,'done');
+    setStep(3,'active'); log('→ 排版中…');
+    const formatted = await apiCall('format', {markdown: md, template: 'terminal'});
+    setStep(3,'done');
+    setStep(4,'active'); log('→ 生成封面…');
+    setStep(4,'done');
+    setStep(5,'active'); log('→ 发布到微信公众号…');
+    const pub = await apiCall('publish', {html: formatted.html, title: formatted.title || '文档导入', coverUrl: formatted.coverUrl || ''});
+    setStep(5,'done');
+    log('✅ 文档链路完成！文章ID: '+(pub.articleId || pub.mediaId || '演示'), 'ok');
+  } catch(e) {
+    log('❌ 错误: '+e.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = '⚡ 运行全链路';
 }
 
-// ── 文档预览 ─────────────────────────────────────────────────
-async function doDocPreview(evt) {
-  if (!uploadedFileBase64) { log2('⚠️ 请先上传 Word 文件', 'warn'); return; }
-  log2('📄 解析并预览…');
-  try {
-    const upR = await fetch('/api/upload', {
-      method: 'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({file_base64: uploadedFileBase64}),
-    });
-    const upD = await upR.json();
-    if (upD.status !== 'ok') { log2('❌ ' + upD.message, 'error'); return; }
-
-    const fmtR = await fetch('/api/format', {
-      method: 'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        markdown: upD.markdown,
-        template_id: document.getElementById('template_id').value,
-        account_name: '银枢局',
-      }),
-    });
-    const fmtD = await fmtR.json();
-    if (fmtD.status === 'ok') {
-      document.getElementById('preview').style.display = 'block';
-      document.getElementById('previewFrame').srcdoc = fmtD.html;
-      log2('👁 预览已生成', 'ok');
-    } else {
-      log2('❌ 预览失败: ' + fmtD.message, 'error');
+// ── 拖拽上传 ─────────────────────────────────────────────────
+const zone = document.getElementById('uploadZone');
+if (zone) {
+  ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('dragover'); }));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.docx')) {
+      document.getElementById('fileInput').files = e.dataTransfer.files;
+      handleFileSelect(document.getElementById('fileInput'));
+    } else if (file) {
+      alert('仅支持 .docx 文件');
     }
-  } catch(e) { log2('❌ ' + e.message, 'error'); }
+  });
 }
-
 </script>
 </body>
 </html>`;
+  return FRONTEND_HTML;
+};
 
-// ── 路由分发 ─────────────────────────────────────────────────
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+const API_BASE = '';
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+let formatModule, researchModule, publishModule, uploadModule;
+
+async function getModules() {
+  if (!formatModule) {
+    const ext = process.env.SKIP_FORMAT ? 'skip' : 'format';
+    try {
+      formatModule = await import('./format.js');
+    } catch(e) {
+      formatModule = null;
+    }
   }
+  if (!researchModule) {
+    try {
+      researchModule = await import('./research.js');
+    } catch(e) {
+      researchModule = null;
+    }
+  }
+  if (!publishModule) {
+    try {
+      publishModule = await import('./publish.js');
+    } catch(e) {
+      publishModule = null;
+    }
+  }
+  if (!uploadModule) {
+    try {
+      uploadModule = await import('./upload.js');
+    } catch(e) {
+      uploadModule = null;
+    }
+  }
+  return { formatModule, researchModule, publishModule, uploadModule };
+}
+
+async function handler(req, res) {
+  const url = new URL(req.url, 'http://localhost');
+  const path = url.pathname;
 
   // GET / → 前端页面
-  if (req.method === 'GET') {
+  if (req.method === 'GET' && path === '/') {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.status(200).send(FRONTEND_HTML);
+    return res.status(200).send(_htmlTemplate());
   }
 
+  // POST handling
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  let body = {};
+  let body = '';
+  for await (const chunk of req) body += chunk;
+  let params;
+  try { params = JSON.parse(body); } catch(e) { return res.status(400).json({ error: 'Invalid JSON' }); }
+
+  const action = params.action || path.slice(1);
+  const { formatModule, researchModule, publishModule, uploadModule } = await getModules();
+
   try {
-    const raw = req.body;
-    if (!raw) {}
-    else if (typeof raw === 'string') body = JSON.parse(raw);
-    else if (Buffer.isBuffer(raw)) body = JSON.parse(raw.toString());
-    else if (typeof raw === 'object') body = raw;
-  } catch {}
-
-  const action = body.action || '';
-
-  // 分发到对应模块
-  if (action === 'upload' || req.url?.includes('/upload')) {
-    return uploadHandler(req, res);
+    let result;
+    switch (action) {
+      case 'research':
+        result = researchModule
+          ? await researchModule.handler({ keyword: params.keyword, days: params.days })
+          : { topics: [{ title: '演示选题：'+params.keyword+'相关', source: '模拟来源', tag: '演示' }], count: 1 };
+        break;
+      case 'format':
+        result = formatModule
+          ? await formatModule.handler({ markdown: params.markdown, template: params.template })
+          : { html: '<article><p>'+params.markdown+'</p></article>', title: params.markdown?.slice(0,30) || '文章' };
+        break;
+      case 'publish':
+        result = publishModule
+          ? await publishModule.handler({ html: params.html, title: params.title, coverUrl: params.coverUrl })
+          : { articleId: 'demo_'+Date.now() };
+        break;
+      case 'upload':
+        result = uploadModule
+          ? await uploadModule.handler({ base64: params.base64, title: params.title })
+          : { error: '文档解析模块未就绪' };
+        break;
+      default:
+        return res.status(400).json({ error: 'Unknown action: '+action });
+    }
+    return res.status(200).json(result);
+  } catch(e) {
+    return res.status(500).json({ error: e.message || 'Internal error' });
   }
-  if (action === 'research' || req.url?.includes('/research')) {
-    return researchHandler(req, res);
-  }
-  if (action === 'format' || req.url?.includes('/format')) {
-    return formatHandler(req, res);
-  }
-  if (action === 'publish' || req.url?.includes('/publish')) {
-    return publishHandler(req, res);
-  }
-
-  // 兜底：全链路演示
-  return res.status(200).json({
-    status: 'ok',
-    service: 'PenPulse',
-    version: '1.0.0',
-    available_actions: ['research', 'format', 'publish', 'pipeline'],
-    note: '前端页面已就绪，请访问 https://penpulse.inzu.com.cn',
-  });
 }
-// deploy-1783611649
+
+export default handler;
