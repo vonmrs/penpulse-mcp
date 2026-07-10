@@ -309,16 +309,20 @@ function switchTab(n) {
     const tab2 = document.getElementById('tab2');
     const c1 = document.getElementById('content1');
     const c2 = document.getElementById('content2');
-    console.log('tab1:', tab1, 'tab2:', tab2, 'c1:', c1, 'c2:', c2);
+    console.log('tab1:', tab1 && tab1.className, 'tab2:', tab2 && tab2.className, 'c1:', c1 && c1.className, 'c2:', c2 && c2.className);
     if (!tab1 || !tab2 || !c1 || !c2) {
       console.error('switchTab: elements missing');
       return;
     }
     tab1.classList.toggle('active', n === 1);
     tab2.classList.toggle('active', n === 2);
+    // 用 style.display 做后备，防止 CSS 优先级问题
+    c1.style.display = n === 1 ? 'block' : 'none';
+    c2.style.display = n === 2 ? 'block' : 'none';
+    // classList 保留作为视觉保险
     c1.classList.toggle('active', n === 1);
     c2.classList.toggle('active', n === 2);
-    console.log('switchTab done, content2 classes:', c2.className);
+    console.log('switchTab(' + n + ') done. c1.display:', c1.style.display, 'c2.display:', c2.style.display);
   } catch(e) {
     console.error('switchTab error:', e);
   }
