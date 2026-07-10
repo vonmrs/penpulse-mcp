@@ -285,47 +285,49 @@ function buildFullHtml(md, templateId, theme, options = {}) {
 </html>`;
 }
 
-// ── 主函数 ───────────────────────────────────────────────────
+// ── 核心格式化函数（无 HTTP 依赖） ──────────────────────────────
+async function formatMarkdown(raw) {
+  const markdown = raw.markdown || raw.content || '# 标题\n\n正文内容';
+  const templateId = raw.template_id || 'journal';
+  const theme = THEMES[templateId] || THEMES['journal'];
+
+  const opts = raw.account_name ? {
+    accountName: raw.account_name,
+    accountId: raw.account_id || 'gh_xxxx',
+    description: raw.description || '洞察趋势，把握先机',
+  } : {
+    accountName: '银枢局',
+    accountId: 'gh_xxxx',
+    description: '洞察趋势，把握先机',
+  };
+
+  const html = buildFullHtml(markdown, templateId, theme, opts);
+
+  return {
+    status: 'ok',
+    html,
+    html_length: html.length,
+    template_id: templateId,
+    theme: THEMES[templateId] ? 'custom' : 'journal (default)',
+  };
+}
+
+// ── HTTP 处理器 ───────────────────────────────────────────────
 function parseBody(raw) { if (!raw) return {}; if (typeof raw === "string") return JSON.parse(raw); if (Buffer.isBuffer(raw)) return JSON.parse(raw.toString()); if (typeof raw === "object") return raw; return {}; }
 
 export default async function handler(req, res) {
   try {
+    // 子模块调用：index.js 直接传参
+    if (res === undefined && req && (req.markdown || req.content)) {
+      return formatMarkdown(req);
+    }
+
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') return res.status(200).end();
 
-    const raw = req.body;
-    let body = {};
-    if (raw) {
-      if (typeof raw === 'string') body = JSON.parse(raw);
-      else if (Buffer.isBuffer(raw)) body = JSON.parse(raw.toString());
-      else if (typeof raw === 'object') body = raw;
-    }
-
-    const markdown = body.markdown || body.content || '# 标题\n\n正文内容';
-    const templateId = body.template_id || 'journal';
-    const theme = THEMES[templateId] || THEMES['journal'];
-
-    const opts = body.account_name ? {
-      accountName: body.account_name,
-      accountId: body.account_id || 'gh_xxxx',
-      description: body.description || '洞察趋势，把握先机',
-    } : {
-      accountName: '银枢局',
-      accountId: 'gh_xxxx',
-      description: '洞察趋势，把握先机',
-    };
-
-    const html = buildFullHtml(markdown, templateId, theme, opts);
-
-    return res.status(200).json({
-      status: 'ok',
-      html,
-      html_length: html.length,
-      template_id: templateId,
-      theme: THEMES[templateId] ? 'custom' : 'journal (default)',
-    });
+    return res.status(200).json(await formatMarkdown(parseBody(req.body)));
   } catch(e) {
     return res.status(200).json({ status: 'error', message: e.message, stack: e.stack });
   }

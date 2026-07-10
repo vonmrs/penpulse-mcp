@@ -140,24 +140,15 @@ async function searchSogou(keyword, days = 7) {
   return { status: 'ok', keyword, count: unique.length, topics: unique.slice(0, 10) };
 }
 
-// ── 主函数 ───────────────────────────────────────────────────
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
-  let body = parseBody(req.body);
-
-  const keyword = body.keyword || '荆州';
-  const days = parseInt(body.days) || 7;
-
+// ── 核心搜索函数（无 HTTP 依赖） ──────────────────────────────
+async function research(q) {
+  const keyword = q.keyword || '荆州';
+  const days = parseInt(q.days) || 7;
   try {
-    const result = await searchSogou(keyword, days);
-    return res.status(200).json(result);
+    return await searchSogou(keyword, days);
   } catch (e) {
     console.error('搜索失败:', e.message);
-    return res.status(200).json({
+    return {
       status: 'ok',
       keyword,
       count: 0,
@@ -171,6 +162,25 @@ export default async function handler(req, res) {
         date: new Date().toISOString().slice(0, 10),
       }],
       error: e.message,
-    });
+    };
+  }
+}
+
+// ── HTTP 处理器 ───────────────────────────────────────────────
+export default async function handler(req, res) {
+  try {
+    // 子模块调用：index.js 直接传参
+    if (res === undefined && req && (req.keyword || req.markdown)) {
+      return research(req);
+    }
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+
+    return res.status(200).json(await research(parseBody(req.body)));
+  } catch (e) {
+    return res.status(200).json({ status: 'error', message: e.message });
   }
 }
