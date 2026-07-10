@@ -139,9 +139,34 @@ function toMarkdown(text) {
   return md.join('\n');
 }
 
-// ── 主函数 ───────────────────────────────────────────────────
+// ── 核心解析函数（无 HTTP 依赖） ──────────────────────────────
+async function parseFile({ file_base64, filename }) {
+  if (!file_base64) {
+    return { status: 'error', message: '缺少 file_base64 参数' };
+  }
+  const text = parseDocxFromBase64(file_base64);
+  const markdown = toMarkdown(text);
+  const wordCount = text.replace(/\s/g, '').length;
+  const firstLine = text.split(/\r?\n/)[0].trim().slice(0, 64);
+  return {
+    status: 'ok',
+    markdown,
+    text,
+    word_count: wordCount,
+    char_count: text.length,
+    default_title: firstLine,
+    filename: filename || '文档.docx',
+  };
+}
+
+// ── HTTP 处理器（Vercel 直接调用） ────────────────────────────
 export default async function uploadHandler(req, res) {
   try {
+    // 子模块调用：index.js 直接传参，res 为 undefined
+    if (res === undefined && req && req.file_base64) {
+      return parseFile({ file_base64: req.file_base64, filename: req.title });
+    }
+
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -152,43 +177,14 @@ export default async function uploadHandler(req, res) {
 
     let body = {};
     try {
-      // 子模块调用：index.js 直接传 params，不是 HTTP 请求
-      if (req && req.file_base64) {
-        body = req;
-      } else {
-        const raw = req.body;
-        if (!raw) {}
-        else if (typeof raw === 'string') body = JSON.parse(raw);
-        else if (Buffer.isBuffer(raw)) body = JSON.parse(raw.toString());
-        else if (typeof raw === 'object') body = raw;
-      }
+      const raw = req.body;
+      if (!raw) {}
+      else if (typeof raw === 'string') body = JSON.parse(raw);
+      else if (Buffer.isBuffer(raw)) body = JSON.parse(raw.toString());
+      else if (typeof raw === 'object') body = raw;
     } catch {}
 
-    const { file_base64, filename } = body;
-
-    if (!file_base64) {
-      return res.status(200).json({
-        status: 'error',
-        message: '缺少 file_base64 参数（前端 FileReader 已自动转换）',
-        usage: 'POST /api/upload with { file_base64: "<base64 string>" }',
-      });
-    }
-
-    const text = parseDocxFromBase64(file_base64);
-    const markdown = toMarkdown(text);
-    const wordCount = text.replace(/\s/g, '').length;
-    const firstLine = text.split(/\r?\n/)[0].trim().slice(0, 64);
-
-    return res.status(200).json({
-      status: 'ok',
-      markdown,
-      text,
-      word_count: wordCount,
-      char_count: text.length,
-      default_title: firstLine,
-      filename: filename || '文档.docx',
-      usage: '将 markdown 传给 /api/format → /api/publish',
-    });
+    return res.status(200).json(await parseFile(body));
   } catch (e) {
     return res.status(200).json({ status: 'error', message: e.message });
   }
