@@ -70,9 +70,12 @@ footer a { color:#58a6ff; text-decoration:none; }
 <div class="tab-content active" id="content1">
   <div class="card">
     <h2>🔍 第一步：选题搜索</h2>
+    <p style="font-size:13px;color:#8b949e;margin-bottom:12px;line-height:1.5">
+      输入关键词 → 搜索热门选题 → 点击选题自动填入 → <strong>运行全链路</strong>
+    </p>
     <div class="row">
       <div>
-        <label>关键词</label>
+        <label>关键词 <span style="color:#f85149">*</span></label>
         <input type="text" id="keyword" placeholder="例如：荆州企业融资" value="">
       </div>
       <div>
@@ -106,7 +109,7 @@ footer a { color:#58a6ff; text-decoration:none; }
       <button onclick="doSearch()">🔍 搜索选题</button>
       <button onclick="doPipeline(event)" style="background:#1f6feb" id="runBtn">⚡ 运行全链路</button>
     </div>
-    <div id="topics"></div>
+    <div id="topics" style="margin-top:8px"></div>
   </div>
 
   <div class="card">
@@ -198,10 +201,20 @@ async function doSearch() {
 
 async function doPipeline(evt) {
   const btn = (evt || event).target;
-  btn.disabled = true; btn.textContent = '⚡ 运行中…';
-  for(let i=1;i<=5;i++) setStep(i,'');
   const kw = document.getElementById('keyword').value.trim();
   const template = document.getElementById('template_id').value;
+
+  // ── Validate: keyword required ──
+  if (!kw) {
+    log('❌ 请先输入关键词', 'error');
+    document.getElementById('keyword').focus();
+    document.getElementById('keyword').style.borderColor = '#f85149';
+    setTimeout(() => document.getElementById('keyword').style.borderColor = '', 2000);
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = '⚡ 运行中…';
+  for(let i=1;i<=5;i++) setStep(i,'');
   log('🚀 全链路启动：关键词「'+kw+'」');
   try {
     setStep(1,'active'); log('→ 选题搜索中…');
@@ -218,11 +231,15 @@ async function doPipeline(evt) {
     setStep(5,'active'); log('→ 发布到微信公众号…');
     const pub = await apiCall('publish', {html: formatted.html, title: formatted.title || kw, coverUrl: formatted.coverUrl || ''});
     setStep(5,'done');
-    log('✅ 全链路完成！文章ID: '+(pub.articleId || pub.mediaId || '演示'), 'ok');
+    if (pub && pub.status === 'error') {
+      log('⚠️ 发布未完成: '+(pub.message || '发布模块需配置微信公众号 API Key')+'。可在本地环境完整运行。', 'warn');
+    } else if (pub && (pub.articleId || pub.media_id)) {
+      log('✅ 发布成功！草稿 ID: '+(pub.media_id || pub.articleId), 'ok');
+    } else {
+      log('✅ 全链路模拟完成（演示模式，未真实发布）', 'ok');
+    }
   } catch(e) {
     log('❌ 错误: '+e.message, 'error');
-    document.getElementById('runBtn').disabled = false;
-    document.getElementById('runBtn').textContent = '⚡ 运行全链路';
   }
   btn.disabled = false; btn.textContent = '⚡ 运行全链路';
 }
