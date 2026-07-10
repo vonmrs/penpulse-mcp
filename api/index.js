@@ -312,11 +312,26 @@ async function doDocPreview() {
 
 async function doDocPipeline(evt) {
   const btn = (evt || event).target;
-  const md = window._docMarkdown;
-  if (!md) { alert('请先上传文档并预览解析'); return; }
   btn.disabled = true; btn.textContent = '⚡ 运行中…';
   log2('🚀 文档导入链路启动…');
   try {
+    // ── 解析文档（如果还没预览解析过） ──
+    let md = window._docMarkdown;
+    if (!md) {
+      if (!uploadedFileBase64) { alert('请先上传文档'); btn.disabled = false; btn.textContent = '⚡ 解析 → 排版 → 发布'; return; }
+      log2('→ 解析文档…');
+      const title = document.getElementById('docTitle').value.trim();
+      const d = await apiCall('upload', {base64: uploadedFileBase64, title: title || undefined});
+      if (d && d.error) { log2('❌ 解析失败: '+d.error, 'error'); btn.disabled = false; btn.textContent = '⚡ 解析 → 排版 → 发布'; return; }
+      md = d.markdown;
+      window._docMarkdown = md;
+      if (!title && d.text) {
+        const fl = d.text.split(/[\\n\\r]+/)[0].trim();
+        if (fl.length <= 50) document.getElementById('docTitle').value = fl;
+      }
+      document.getElementById('parsePreview').textContent = md.slice(0, 500) + (md.length > 500 ? '\\n…' : '');
+      log2('✅ 解析成功', 'ok');
+    }
     log2('→ 排版中…');
     const formatted = await apiCall('format', {markdown: md, template: 'terminal'});
     log2('→ 排版完成', 'ok');
