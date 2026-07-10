@@ -297,7 +297,7 @@ async function doDocPreview() {
   log2('🔍 正在解析文档…');
   const title = document.getElementById('docTitle').value.trim();
   try {
-    const d = await apiCall('upload', {base64: uploadedFileBase64, title: title || undefined});
+    const d = await apiCall('upload', {file_base64: uploadedFileBase64, title: title || undefined});
     if (d && d.error) { log2('❌ 解析失败: '+d.error, 'error'); return; }
     window._docMarkdown = d.markdown;
     if (!title && d.text) {
@@ -321,7 +321,7 @@ async function doDocPipeline(evt) {
       if (!uploadedFileBase64) { alert('请先上传文档'); btn.disabled = false; btn.textContent = '⚡ 解析 → 排版 → 发布'; return; }
       log2('→ 解析文档…');
       const title = document.getElementById('docTitle').value.trim();
-      const d = await apiCall('upload', {base64: uploadedFileBase64, title: title || undefined});
+      const d = await apiCall('upload', {file_base64: uploadedFileBase64, title: title || undefined});
       if (d && d.error) { log2('❌ 解析失败: '+d.error, 'error'); btn.disabled = false; btn.textContent = '⚡ 解析 → 排版 → 发布'; return; }
       md = d.markdown;
       window._docMarkdown = md;
@@ -464,7 +464,7 @@ async function handler(req, res) {
     case 'upload':
       try {
         result = uploadModule
-          ? await uploadModule.handler({ base64: params.base64, title: params.title })
+          ? await uploadModule.handler({ file_base64: params.file_base64, title: params.title })
           : { error: '文档解析模块未就绪' };
       } catch(e) {
         result = { status: 'error', message: '文档解析失败: '+e.message };
