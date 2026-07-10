@@ -439,7 +439,7 @@ async function handler(req, res) {
     case 'research':
       try {
         result = researchModule
-          ? await researchModule.handler({ keyword: params.keyword, days: params.days })
+          ? await researchModule.default({ keyword: params.keyword, days: params.days })
           : { topics: [{ title: '演示选题：'+params.keyword+'相关', source: '模拟来源', tag: '演示' }], count: 1 };
       } catch(e) {
         result = { status: 'error', message: '选题搜索失败: '+e.message };
@@ -448,7 +448,7 @@ async function handler(req, res) {
     case 'format':
       try {
         result = formatModule
-          ? await formatModule.handler({ markdown: params.markdown, template: params.template })
+          ? await formatModule.default({ markdown: params.markdown, template: params.template })
           : { html: '<article><p>'+params.markdown+'</p></article>', title: params.markdown?.slice(0,30) || '文章' };
       } catch(e) {
         result = { status: 'error', message: '排版失败: '+e.message };
@@ -457,7 +457,7 @@ async function handler(req, res) {
     case 'publish':
       try {
         result = publishModule
-          ? await publishModule.handler({ html: params.html, title: params.title, coverUrl: params.coverUrl })
+          ? await publishModule.default({ html: params.html, title: params.title, coverUrl: params.coverUrl })
           : { articleId: 'demo_'+Date.now() };
       } catch(e) {
         result = { status: 'error', message: '发布失败: '+e.message };
@@ -466,7 +466,7 @@ async function handler(req, res) {
     case 'upload':
       try {
         result = uploadModule
-          ? await uploadModule.handler({ file_base64: params.file_base64, title: params.title })
+          ? await uploadModule.default({ file_base64: params.file_base64, title: params.title })
           : { error: '文档解析模块未就绪' };
       } catch(e) {
         result = { status: 'error', message: '文档解析失败: '+e.message };

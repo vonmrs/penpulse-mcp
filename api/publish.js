@@ -104,11 +104,68 @@ async function createDraft(accessToken, title, html, author, thumbMediaId, conte
   throw new Error(`创建草稿失败: ${JSON.stringify(data)}`);
 }
 
-// ── 主函数 ───────────────────────────────────────────────────
+// ── 核心发布函数（无 HTTP 依赖） ──────────────────────────────
+async function publish({ title, html, cover_base64, author, content_source_url, account_id }) {
+  if (!title || !html) {
+    throw new Error('缺少 title 或 html 参数');
+  }
+
+  const config = getConfig();
+  const account = config.accounts
+    ? config.accounts.find(a => a.id === account_id) || config.accounts[0]
+    : { appid: config.appid, appsecret: config.appsecret, id: 'default', name: '默认账号' };
+
+  // Step 1: 获取 token
+  const accessToken = await getAccessToken(account);
+
+  // Step 2: 上传封面（可选）
+  let coverResult = { url: '', media_id: '' };
+  if (cover_base64) {
+    try {
+      coverResult = await uploadCoverImage(accessToken, cover_base64);
+    } catch (e) {
+      console.warn('封面上传失败（继续发布）:', e.message);
+    }
+  }
+
+  // Step 3: 创建草稿
+  const draft = await createDraft(
+    accessToken,
+    title,
+    html,
+    author || 'PenPulse AI',
+    coverResult.media_id,
+    content_source_url || '',
+  );
+
+  const previewUrl = `https://mp.weixin.qq.com/cgi-bin/appmsg?t=media/appmsg_edit_v2&action=edit&lang=zh_CN&token=${accessToken}&vid=${draft.media_id}`;
+
+  return {
+    status: 'ok',
+    media_id: draft.media_id,
+    preview_url: previewUrl,
+    cover_url: coverResult.url,
+    message: `草稿「${title}」已推送至${account.name || '公众号'}后台`,
+  };
+}
+
+// ── HTTP 处理器 ───────────────────────────────────────────────
 function parseBody(raw) { if (!raw) return {}; if (typeof raw === "string") return JSON.parse(raw); if (Buffer.isBuffer(raw)) return JSON.parse(raw.toString()); if (typeof raw === "object") return raw; return {}; }
 
 export default async function handler(req, res) {
   try {
+    // 子模块调用：index.js 直接传参，res 为 undefined
+    if (res === undefined && req && req.html) {
+      return publish({
+        title: req.title,
+        html: req.html,
+        cover_base64: req.coverUrl || req.cover_base64,
+        author: req.author,
+        content_source_url: req.content_source_url,
+        account_id: req.account_id,
+      });
+    }
+
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -118,52 +175,7 @@ export default async function handler(req, res) {
     }
 
     const body = parseBody(req.body);
-    const title = body.title;
-    const html = body.html;
-    const cover_base64 = body.cover_base64;
-    const account_id = body.account_id;
-
-    if (!title || !html) {
-      return res.status(200).json({ status: 'error', message: '缺少 title 或 html 参数' });
-    }
-
-    const config = getConfig();
-    const account = config.accounts
-      ? config.accounts.find(a => a.id === account_id) || config.accounts[0]
-      : { appid: config.appid, appsecret: config.appsecret, id: 'default', name: '默认账号' };
-
-    // Step 1: 获取 token
-    const accessToken = await getAccessToken(account);
-
-    // Step 2: 上传封面（可选）
-    let coverResult = { url: '', media_id: '' };
-    if (cover_base64) {
-      try {
-        coverResult = await uploadCoverImage(accessToken, cover_base64);
-      } catch (e) {
-        console.warn('封面上传失败（继续发布）:', e.message);
-      }
-    }
-
-    // Step 3: 创建草稿
-    const draft = await createDraft(
-      accessToken,
-      title,
-      html,
-      body.author || 'PenPulse AI',
-      coverResult.media_id,
-      body.content_source_url || '',
-    );
-
-    const previewUrl = `https://mp.weixin.qq.com/cgi-bin/appmsg?t=media/appmsg_edit_v2&action=edit&lang=zh_CN&token=${accessToken}&vid=${draft.media_id}`;
-
-    return res.status(200).json({
-      status: 'ok',
-      media_id: draft.media_id,
-      preview_url: previewUrl,
-      cover_url: coverResult.url,
-      message: `草稿「${title}」已推送至${account.name || '公众号'}后台`,
-    });
+    return res.status(200).json(await publish(body));
   } catch (e) {
     console.error('发布失败:', e.message);
     return res.status(200).json({ status: 'error', message: e.message });
