@@ -142,8 +142,8 @@ footer a{color:#58a6ff;text-decoration:none}
   <div class="step-row"><div class="step" id="s4">4</div>AI 封面</div>
   <div class="step-row"><div class="step" id="s5">5</div>推送草稿</div>
   <div class="btn-group">
-    <button class="btn" onclick="doPipeline()">▶ 一键运行全链路</button>
-    <button class="btn btn-secondary" onclick="doPreview()">👁 预览当前排版</button>
+    <button class="btn" onclick="doPipeline(event)">▶ 一键运行全链路</button>
+    <button class="btn btn-secondary" onclick="doPreview(event)">👁 预览当前排版</button>
   </div>
   <div id="log"><div class="log-info log-line">PenPulse 就绪，等待指令…</div></div>
 </div>
@@ -175,8 +175,8 @@ footer a{color:#58a6ff;text-decoration:none}
 
   <div class="btn-group" style="margin-top:16px">
     <button class="btn" onclick="doUpload()">📄 解析文档</button>
-    <button class="btn btn-secondary" onclick="doDocPipeline()">🚀 立即发布</button>
-    <button class="btn btn-secondary" onclick="doDocPreview()">👁 预览排版</button>
+    <button class="btn btn-secondary" onclick="doDocPipeline(event)">🚀 立即发布</button>
+    <button class="btn btn-secondary" onclick="doDocPreview(event)">👁 预览排版</button>
   </div>
 
   <div id="parseResult" style="display:none;margin-top:16px">
@@ -245,8 +245,8 @@ async function doSearch() {
   } catch(e) { log('❌ 搜索失败: '+e.message, 'error'); }
 }
 
-async function doPipeline() {
-  const btn = event.target;
+async function doPipeline(evt) {
+  const btn = (evt || event).target;
   btn.disabled = true; btn.textContent = '⚡ 运行中…';
   for(let i=1;i<=5;i++) setStep(i,'');
   const kw = document.getElementById('keyword').value.trim();
@@ -288,7 +288,7 @@ async function doPipeline() {
   }
 }
 
-async function doPreview() {
+async function doPreview(evt) {
   const md = '# 示例标题\\n\\n这是**示例正文**，演示排版效果。';
   const template = document.getElementById('template_id').value;
   const r = await fetch('/api/format', {
@@ -303,10 +303,14 @@ async function doPreview() {
 
 // ── Tab 切换 ─────────────────────────────────────────────────
 function switchTab(n) {
-  document.getElementById('tab1').className = 'tab-btn' + (n === 1 ? ' active' : '');
-  document.getElementById('tab2').className = 'tab-btn' + (n === 2 ? ' active' : '');
-  document.getElementById('content1').className = 'tab-content' + (n === 1 ? ' active' : '');
-  document.getElementById('content2').className = 'tab-content' + (n === 2 ? ' active' : '');
+  const tab1 = document.getElementById('tab1');
+  const tab2 = document.getElementById('tab2');
+  const c1 = document.getElementById('content1');
+  const c2 = document.getElementById('content2');
+  tab1.classList.toggle('active', n === 1);
+  tab2.classList.toggle('active', n === 2);
+  c1.classList.toggle('active', n === 1);
+  c2.classList.toggle('active', n === 2);
 }
 
 // ── 文件选择 ─────────────────────────────────────────────────
@@ -374,11 +378,11 @@ async function doUpload() {
 }
 
 // ── 文档发布 ─────────────────────────────────────────────────
-async function doDocPipeline() {
+async function doDocPipeline(evt) {
   if (!uploadedFileBase64) { log2('⚠️ 请先上传 Word 文件', 'warn'); return; }
   const title = document.getElementById('docTitle').value.trim() || '未命名文章';
   const template = document.getElementById('template_id').value;
-  const btn = event.target;
+  const btn = (evt || event).target;
   btn.disabled = true; btn.textContent = '⚡ 发布中…';
   log2('🚀 文档发布启动…');
 
@@ -422,7 +426,7 @@ async function doDocPipeline() {
 }
 
 // ── 文档预览 ─────────────────────────────────────────────────
-async function doDocPreview() {
+async function doDocPreview(evt) {
   if (!uploadedFileBase64) { log2('⚠️ 请先上传 Word 文件', 'warn'); return; }
   log2('📄 解析并预览…');
   try {
