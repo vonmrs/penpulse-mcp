@@ -152,11 +152,16 @@ export default async function uploadHandler(req, res) {
 
     let body = {};
     try {
-      const raw = req.body;
-      if (!raw) {}
-      else if (typeof raw === 'string') body = JSON.parse(raw);
-      else if (Buffer.isBuffer(raw)) body = JSON.parse(raw.toString());
-      else if (typeof raw === 'object') body = raw;
+      // 子模块调用：index.js 直接传 params，不是 HTTP 请求
+      if (req && req.file_base64) {
+        body = req;
+      } else {
+        const raw = req.body;
+        if (!raw) {}
+        else if (typeof raw === 'string') body = JSON.parse(raw);
+        else if (Buffer.isBuffer(raw)) body = JSON.parse(raw.toString());
+        else if (typeof raw === 'object') body = raw;
+      }
     } catch {}
 
     const { file_base64, filename } = body;
