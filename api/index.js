@@ -189,12 +189,7 @@ async function doSearch() {
   const kw = document.getElementById('keyword').value.trim();
   const days = parseInt(document.getElementById('days').value) || 7;
   try {
-    const r = await fetch('/api/research', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({keyword: kw, days}),
-    });
-    const d = await r.json();
+    const d = await apiCall('research', {keyword: kw, days});
     const el = document.getElementById('topics');
     el.innerHTML = '';
     (d.topics || []).slice(0,5).forEach(t => {
@@ -421,36 +416,49 @@ async function handler(req, res) {
   const action = params.action || path.slice(1);
   const { formatModule, researchModule, publishModule, uploadModule } = await getModules();
 
-  try {
-    let result;
-    switch (action) {
-      case 'research':
+  let result;
+  let wrapErr;
+  switch (action) {
+    case 'research':
+      try {
         result = researchModule
           ? await researchModule.handler({ keyword: params.keyword, days: params.days })
           : { topics: [{ title: '演示选题：'+params.keyword+'相关', source: '模拟来源', tag: '演示' }], count: 1 };
-        break;
-      case 'format':
+      } catch(e) {
+        result = { status: 'error', message: '选题搜索失败: '+e.message };
+      }
+      break;
+    case 'format':
+      try {
         result = formatModule
           ? await formatModule.handler({ markdown: params.markdown, template: params.template })
           : { html: '<article><p>'+params.markdown+'</p></article>', title: params.markdown?.slice(0,30) || '文章' };
-        break;
-      case 'publish':
+      } catch(e) {
+        result = { status: 'error', message: '排版失败: '+e.message };
+      }
+      break;
+    case 'publish':
+      try {
         result = publishModule
           ? await publishModule.handler({ html: params.html, title: params.title, coverUrl: params.coverUrl })
           : { articleId: 'demo_'+Date.now() };
-        break;
-      case 'upload':
+      } catch(e) {
+        result = { status: 'error', message: '发布失败: '+e.message };
+      }
+      break;
+    case 'upload':
+      try {
         result = uploadModule
           ? await uploadModule.handler({ base64: params.base64, title: params.title })
           : { error: '文档解析模块未就绪' };
-        break;
-      default:
-        return res.status(400).json({ error: 'Unknown action: '+action });
-    }
-    return res.status(200).json(result);
-  } catch(e) {
-    return res.status(500).json({ error: e.message || 'Internal error' });
+      } catch(e) {
+        result = { status: 'error', message: '文档解析失败: '+e.message };
+      }
+      break;
+    default:
+      return res.status(400).json({ error: 'Unknown action: '+action });
   }
+  return res.status(200).json(result);
 }
 
 export default handler;
