@@ -49,6 +49,7 @@ header p { color:#8b949e; font-size:14px; margin-top:6px; }
 .upload-zone p { color:#8b949e; font-size:14px; margin-top:8px; }
 .upload-zone .icon { font-size:36px; }
 #parsePreview { white-space:pre-wrap; word-break:break-all; }
+#log2 { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:12px; font-size:12px; font-family:'JetBrains Mono','SF Mono','Menlo',monospace; height:150px; overflow-y:auto; line-height:1.6; }
 footer { text-align:center; padding:20px; color:#484f58; font-size:12px; }
 footer a { color:#58a6ff; text-decoration:none; }
 </style>
@@ -145,6 +146,10 @@ footer a { color:#58a6ff; text-decoration:none; }
     <div style="margin-top:12px">
       <label>解析预览</label>
       <div id="parsePreview" style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;font-size:12px;color:#c9d1d9;max-height:150px;overflow-y:auto;line-height:1.6;"></div>
+    </div>
+    <div style="margin-top:12px">
+      <label>运行日志</label>
+      <div id="log2"><div class="log-line log-info">就绪。</div></div>
     </div>
   </div>
 </div>
@@ -284,18 +289,21 @@ function handleFileSelect(input) {
   reader.readAsDataURL(file);
 }
 
+function log2(msg, type) {
+  const el = document.getElementById('log2');
+  if (!el) return;
+  const cls = type === 'ok' ? 'log-ok' : type === 'error' ? 'log-error' : type === 'warn' ? 'log-warn' : 'log-info';
+  el.innerHTML += '<div class="log-line '+cls+'">'+msg+'</div>';
+  el.scrollTop = el.scrollHeight;
+}
+
 async function doDocPreview() {
   if (!uploadedFileBase64) { alert('请先上传文档'); return; }
+  log2('🔍 正在解析文档…');
   const title = document.getElementById('docTitle').value.trim();
   try {
-    const r = await fetch('/api/upload', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({base64: uploadedFileBase64, title: title || undefined}),
-    });
-    const d = await r.json();
-    if (d.error) { log('❌ 解析失败: '+d.error, 'error'); return; }
-    // 存回全局以便 doDocPipeline 使用
+    const d = await apiCall('upload', {base64: uploadedFileBase64, title: title || undefined});
+    if (d && d.error) { log2('❌ 解析失败: '+d.error, 'error'); return; }
     window._docMarkdown = d.markdown;
     if (!title && d.text) {
       const firstLine = d.text.split(/[\\n\\r]+/)[0].trim();
@@ -303,8 +311,8 @@ async function doDocPreview() {
     }
     const preview = d.markdown.slice(0, 500);
     document.getElementById('parsePreview').textContent = preview + (d.markdown.length > 500 ? '\\n…' : '');
-    log('✅ 解析成功，共 '+d.markdown.length+' 字符', 'ok');
-  } catch(e) { log('❌ 解析请求失败: '+e.message, 'error'); }
+    log2('✅ 解析成功，共 '+d.markdown.length+' 字符', 'ok');
+  } catch(e) { log2('❌ 解析请求失败: '+e.message, 'error'); }
 }
 
 async function doDocPipeline(evt) {
@@ -312,25 +320,25 @@ async function doDocPipeline(evt) {
   const md = window._docMarkdown;
   if (!md) { alert('请先上传文档并预览解析'); return; }
   btn.disabled = true; btn.textContent = '⚡ 运行中…';
-  log('🚀 文档导入链路启动…');
+  log2('🚀 文档导入链路启动…');
   try {
-    setStep(1,'done');
-    setStep(2,'done');
-    setStep(3,'active'); log('→ 排版中…');
+    log2('→ 排版中…');
     const formatted = await apiCall('format', {markdown: md, template: 'terminal'});
-    setStep(3,'done');
-    setStep(4,'active'); log('→ 生成封面…');
-    setStep(4,'done');
-    setStep(5,'active'); log('→ 发布到微信公众号…');
+    log2('→ 排版完成', 'ok');
+    log2('→ 发布到微信公众号…');
     const pub = await apiCall('publish', {html: formatted.html, title: formatted.title || '文档导入', coverUrl: formatted.coverUrl || ''});
-    setStep(5,'done');
-    log('✅ 文档链路完成！文章ID: '+(pub.articleId || pub.mediaId || '演示'), 'ok');
+    if (pub && pub.status === 'error') {
+      log2('⚠️ 发布未完成: '+(pub.message || '发布模块需配置微信公众号 API Key')+'。可在本地环境完整运行。', 'warn');
+    } else if (pub && (pub.articleId || pub.media_id)) {
+      log2('✅ 发布成功！草稿 ID: '+(pub.media_id || pub.articleId), 'ok');
+    } else {
+      log2('✅ 文档链路模拟完成（演示模式，未真实发布）', 'ok');
+    }
   } catch(e) {
-    log('❌ 错误: '+e.message, 'error');
+    log2('❌ 错误: '+e.message, 'error');
   }
   btn.disabled = false; btn.textContent = '⚡ 运行全链路';
 }
-
 // ── 拖拽上传 ─────────────────────────────────────────────────
 const zone = document.getElementById('uploadZone');
 if (zone) {
