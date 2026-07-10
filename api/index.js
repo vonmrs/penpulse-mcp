@@ -303,14 +303,25 @@ async function doPreview(evt) {
 
 // ── Tab 切换 ─────────────────────────────────────────────────
 function switchTab(n) {
-  const tab1 = document.getElementById('tab1');
-  const tab2 = document.getElementById('tab2');
-  const c1 = document.getElementById('content1');
-  const c2 = document.getElementById('content2');
-  tab1.classList.toggle('active', n === 1);
-  tab2.classList.toggle('active', n === 2);
-  c1.classList.toggle('active', n === 1);
-  c2.classList.toggle('active', n === 2);
+  console.log('switchTab(' + n + ') called');
+  try {
+    const tab1 = document.getElementById('tab1');
+    const tab2 = document.getElementById('tab2');
+    const c1 = document.getElementById('content1');
+    const c2 = document.getElementById('content2');
+    console.log('tab1:', tab1, 'tab2:', tab2, 'c1:', c1, 'c2:', c2);
+    if (!tab1 || !tab2 || !c1 || !c2) {
+      console.error('switchTab: elements missing');
+      return;
+    }
+    tab1.classList.toggle('active', n === 1);
+    tab2.classList.toggle('active', n === 2);
+    c1.classList.toggle('active', n === 1);
+    c2.classList.toggle('active', n === 2);
+    console.log('switchTab done, content2 classes:', c2.className);
+  } catch(e) {
+    console.error('switchTab error:', e);
+  }
 }
 
 // ── 文件选择 ─────────────────────────────────────────────────
@@ -379,6 +390,7 @@ async function doUpload() {
 
 // ── 文档发布 ─────────────────────────────────────────────────
 async function doDocPipeline(evt) {
+  console.log('doDocPipeline called, uploadedFileBase64:', uploadedFileBase64);
   if (!uploadedFileBase64) { log2('⚠️ 请先上传 Word 文件', 'warn'); return; }
   const title = document.getElementById('docTitle').value.trim() || '未命名文章';
   const template = document.getElementById('template_id').value;
