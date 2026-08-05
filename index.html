@@ -248,6 +248,85 @@
     .form-grid { grid-template-columns: 1fr; }
     .pipeline-steps { grid-template-columns: repeat(5, 1fr); }
   }
+
+  /* ── Template Gallery ──────────────────────────────────── */
+  .gallery-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    background: rgba(99,102,241,0.15); color: #818cf8;
+    border: 1px solid rgba(99,102,241,0.3); cursor: pointer;
+    transition: all 0.2s; margin-left: 8px; white-space: nowrap;
+  }
+  .gallery-btn:hover { background: rgba(99,102,241,0.25); border-color: #6366f1; }
+  .gallery-label-row { display: flex; align-items: center; margin-bottom: 6px; }
+  .gallery-label-row label { margin-bottom: 0; }
+
+  .gallery-modal {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .gallery-modal.open { display: flex; }
+  .gallery-panel {
+    background: #111827; border: 1px solid #1f2937; border-radius: 16px;
+    width: 100%; max-width: 1100px; max-height: 90vh; display: flex;
+    flex-direction: column; overflow: hidden;
+  }
+  .gallery-header {
+    display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+    border-bottom: 1px solid #1f2937; flex-shrink: 0;
+  }
+  .gallery-header h2 { font-size: 16px; font-weight: 600; color: #f9fafb; margin: 0; flex: 1; }
+  .gallery-close {
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid #1f2937;
+    background: transparent; color: #9ca3af; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .gallery-close:hover { background: #1f2937; color: #fff; }
+  .gallery-tabs {
+    display: flex; gap: 8px; padding: 0 20px; border-bottom: 1px solid #1f2937;
+    flex-shrink: 0;
+  }
+  .gallery-tab {
+    padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
+    border: none; background: transparent; color: #6b7280;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+  .gallery-tab:hover { color: #9ca3af; }
+  .gallery-tab.active { color: #818cf8; border-bottom-color: #6366f1; }
+  .gallery-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+  .gallery-grid-wrap { width: 320px; flex-shrink: 0; overflow-y: auto; padding: 16px; border-right: 1px solid #1f2937; }
+  .gallery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .gallery-card {
+    background: #0a0e1a; border: 1.5px solid #1f2937; border-radius: 10px;
+    padding: 10px; cursor: pointer; transition: all 0.2s;
+  }
+  .gallery-card:hover { border-color: #6366f1; background: rgba(99,102,241,0.06); }
+  .gallery-card.selected { border-color: #6366f1; background: rgba(99,102,241,0.12); }
+  .gallery-card-num { font-size: 10px; color: #4b5563; margin-bottom: 4px; }
+  .gallery-card-icon { font-size: 20px; margin-bottom: 6px; }
+  .gallery-card-name { font-size: 12px; font-weight: 600; color: #e5e7eb; line-height: 1.3; margin-bottom: 3px; }
+  .gallery-card-desc { font-size: 10px; color: #6b7280; line-height: 1.3; }
+  .gallery-preview { flex: 1; padding: 16px; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+  .gallery-preview-header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .gallery-preview-title { font-size: 13px; color: #9ca3af; }
+  .gallery-preview-title strong { color: #818cf8; }
+  .gallery-use-btn {
+    padding: 7px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600;
+    background: #6366f1; color: #fff; cursor: pointer; transition: all 0.2s;
+  }
+  .gallery-use-btn:hover { background: #818cf8; }
+  .gallery-iframe-wrap { flex: 1; border: 1px solid #1f2937; border-radius: 10px; overflow: hidden; background: #fff; }
+  .gallery-iframe { width: 100%; height: 100%; border: none; display: block; }
+  .gallery-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: #4b5563; font-size: 14px; }
+  @media (max-width: 768px) {
+    .gallery-body { flex-direction: column; }
+    .gallery-grid-wrap { width: 100%; border-right: none; border-bottom: 1px solid #1f2937; max-height: 200px; }
+    .gallery-grid { grid-template-columns: repeat(4, 1fr); }
+    .gallery-panel { max-height: 95vh; }
+  }
 </style>
 </head>
 <body>
@@ -290,7 +369,10 @@
         </select>
       </div>
       <div class="form-group">
-        <label>排版模板</label>
+        <div class="gallery-label-row">
+          <label>排版模板</label>
+          <button class="gallery-btn" onclick="openGallery()">📋 预览效果</button>
+        </div>
         <select id="template_id">
           <option value="journal">📰 晨报头版（朝鉴风格）</option>
           <option value="magazine">📖 杂志封面</option>
@@ -299,11 +381,11 @@
           <option value="minimal">✦ 极简留白</option>
           <option value="chat">💬 对话气泡</option>
           <option value="terminal">💻 终端界面（棱镜风格）</option>
-          <option value="code">⌨️ 代码编辑器</option>
+          <option value="editor">⌨️ 代码编辑器</option>
           <option value="neon">🌆 霓虹赛博</option>
           <option value="glass">🔮 毛玻璃卡片</option>
           <option value="geek">🧪 极客简约</option>
-          <option value="holo">🔮 全息投影</option>
+          <option value="hologram">🔮 全息投影</option>
         </select>
       </div>
       <div class="form-group">
@@ -347,6 +429,35 @@
 <footer>
   PenPulse · AI 内容自动化平台 · © 2026 · <a href="https://inzu.com.cn" style="color:#6366f1;text-decoration:none;">inzu.com.cn</a>
 </footer>
+
+<!-- Template Gallery Modal -->
+<div class="gallery-modal" id="galleryModal" onclick="if(event.target===this)closeGallery()">
+  <div class="gallery-panel">
+    <div class="gallery-header">
+      <h2>🎨 模板预览</h2>
+      <button class="gallery-close" onclick="closeGallery()">✕</button>
+    </div>
+    <div class="gallery-tabs">
+      <button class="gallery-tab active" id="tabZhaojian" onclick="switchTab('zhaojian')">📰 朝鉴风格（12套）</button>
+      <button class="gallery-tab" id="tabLengjing" onclick="switchTab('lengjing')">💻 棱镜风格（12套）</button>
+    </div>
+    <div class="gallery-body">
+      <div class="gallery-grid-wrap">
+        <div class="gallery-grid" id="galleryGrid"></div>
+      </div>
+      <div class="gallery-preview">
+        <div class="gallery-preview-header">
+          <span class="gallery-preview-title" id="galleryPreviewTitle">选择模板查看效果</span>
+          <button class="gallery-use-btn" id="galleryUseBtn" onclick="useSelectedTemplate()" disabled>✓ 使用此模板</button>
+        </div>
+        <div class="gallery-iframe-wrap">
+          <div class="gallery-empty" id="galleryEmpty">← 请从左侧选择模板</div>
+          <iframe class="gallery-iframe" id="galleryIframe" style="display:none;"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast" style="display:none;"></div>
 
@@ -491,6 +602,115 @@ function showPreview(html) {
 function openInWechat() {
   if (state.preview_url) window.open(state.preview_url, '_blank');
   else window.open('https://mp.weixin.qq.com', '_blank');
+}
+
+// ── Template Gallery ──────────────────────────────────────────
+const TEMPLATES = {
+  zhaojian: [
+    { id: 'journal',      file: 'zhaojian-001-editorial.html',    icon: '📰', name: '编辑部视角',   desc: '经典报纸感，首选' },
+    { id: 'magazine',     file: 'zhaojian-002-magazine.html',     icon: '📖', name: '杂志封面',     desc: '大图大字，视觉冲击' },
+    { id: 'cards',        file: 'zhaojian-003-cards.html',        icon: '🃏', name: '卡片瀑布流',   desc: '多模块并列展示' },
+    { id: 'dashboard',    file: 'zhaojian-004-dashboard.html',    icon: '📊', name: '数据仪表盘',   desc: '数据密集型展示' },
+    { id: 'minimal',      file: 'zhaojian-005-minimal.html',      icon: '✦',  name: '极简留白',     desc: '呼吸感，观点驱动' },
+    { id: 'chat',         file: 'zhaojian-006-chat.html',         icon: '💬', name: '对话气泡',     desc: '轻松聊天风格' },
+    { id: 'interview',    file: 'zhaojian-007-interview.html',    icon: '🎙', name: '访谈体',       desc: '问答场景还原' },
+    { id: 'city-compare', file: 'zhaojian-008-city-compare.html', icon: '🏙', name: '城市对比',     desc: '区域横向比较' },
+    { id: 'report',       file: 'zhaojian-009-report.html',       icon: '📋', name: '报告体',       desc: '正式严谨，调研风' },
+    { id: 'story',        file: 'zhaojian-010-story.html',        icon: '📖', name: '故事体',       desc: '叙事驱动，情感共鸣' },
+    { id: 'brief',        file: 'zhaojian-011-brief.html',        icon: '📰', name: '朝鉴简报',     desc: '信息密集，简短直接' },
+    { id: 'emotion',      file: 'zhaojian-012-emotion.html',      icon: '💡', name: '观点洞察',     desc: '反常识，犀利金句' },
+  ],
+  lengjing: [
+    { id: 'terminal',     file: 'prism-001-terminal.html',        icon: '💻', name: '终端界面',     desc: '代码/教程首选' },
+    { id: 'editor',       file: 'prism-002-code-editor.html',     icon: '⌨️', name: '代码编辑器',   desc: 'VS Code 暗色风格' },
+    { id: 'neon',         file: 'prism-003-neon.html',            icon: '🌆', name: '霓虹赛博',     desc: '紫青光效，酷炫' },
+    { id: 'glass',        file: 'prism-004-frosted.html',         icon: '🔮', name: '毛玻璃卡片',   desc: 'iOS 毛玻璃风格' },
+    { id: 'geek',         file: 'prism-005-geek-minimal.html',    icon: '⚡', name: '极客简约',     desc: '纯黑底白字，深度概念' },
+    { id: 'hologram',     file: 'prism-006-hologram.html',        icon: '🔮', name: '全息投影',     desc: '科幻 HUD 风格' },
+    { id: 'api-doc',      file: 'prism-007-api-doc.html',         icon: '📐', name: 'API 文档',     desc: '技术规范说明' },
+    { id: 'github',       file: 'prism-008-github.html',          icon: '🐙', name: 'GitHub 风格',  desc: '开发者工具展示' },
+    { id: 'paper',        file: 'prism-009-paper.html',           icon: '📄', name: '论文风',       desc: '学术研究风格' },
+    { id: 'trend',        file: 'prism-010-trend.html',           icon: '📈', name: '趋势分析',     desc: '市场/行业趋势' },
+    { id: 'product',      file: 'prism-011-product.html',         icon: '🎯', name: '产品拆解',     desc: '产品分析竞品对比' },
+    { id: 'career',       file: 'prism-012-career.html',          icon: '💼', name: '职业发展',     desc: '技术成长建议' },
+  ]
+};
+
+let galleryTab = 'zhaojian';
+let gallerySelected = null;
+
+function openGallery() {
+  galleryTab = 'zhaojian';
+  gallerySelected = null;
+  document.getElementById('galleryModal').classList.add('open');
+  document.getElementById('tabZhaojian').classList.add('active');
+  document.getElementById('tabLengjing').classList.remove('active');
+  document.getElementById('galleryUseBtn').disabled = true;
+  document.getElementById('galleryEmpty').style.display = 'flex';
+  document.getElementById('galleryIframe').style.display = 'none';
+  document.getElementById('galleryPreviewTitle').innerHTML = '选择模板查看效果';
+  renderGrid('zhaojian');
+}
+
+function closeGallery() {
+  document.getElementById('galleryModal').classList.remove('open');
+}
+
+function switchTab(tab) {
+  galleryTab = tab;
+  gallerySelected = null;
+  document.getElementById('tabZhaojian').classList.toggle('active', tab === 'zhaojian');
+  document.getElementById('tabLengjing').classList.toggle('active', tab === 'lengjing');
+  document.getElementById('galleryUseBtn').disabled = true;
+  document.getElementById('galleryEmpty').style.display = 'flex';
+  document.getElementById('galleryIframe').style.display = 'none';
+  document.getElementById('galleryPreviewTitle').innerHTML = '选择模板查看效果';
+  renderGrid(tab);
+}
+
+function renderGrid(tab) {
+  const grid = document.getElementById('galleryGrid');
+  const templates = TEMPLATES[tab];
+  grid.innerHTML = templates.map(t => `
+    <div class="gallery-card" id="card-${t.id}" onclick="selectTemplate('${t.id}')">
+      <div class="gallery-card-num">${t.file.split('-')[1]}</div>
+      <div class="gallery-card-icon">${t.icon}</div>
+      <div class="gallery-card-name">${t.name}</div>
+      <div class="gallery-card-desc">${t.desc}</div>
+    </div>
+  `).join('');
+}
+
+function selectTemplate(id) {
+  gallerySelected = id;
+  const templates = TEMPLATES[galleryTab];
+  const tpl = templates.find(t => t.id === id);
+  if (!tpl) return;
+
+  // Update card selection
+  document.querySelectorAll('.gallery-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.add('selected');
+
+  // Update preview
+  const iframe = document.getElementById('galleryIframe');
+  const empty = document.getElementById('galleryEmpty');
+  const title = document.getElementById('galleryPreviewTitle');
+  const useBtn = document.getElementById('galleryUseBtn');
+
+  empty.style.display = 'none';
+  iframe.style.display = 'block';
+  iframe.src = '/previews/' + tpl.file;
+  title.innerHTML = `<strong>${tpl.icon} ${tpl.name}</strong> · ${tpl.desc}`;
+  useBtn.disabled = false;
+}
+
+function useSelectedTemplate() {
+  if (!gallerySelected) return;
+  const sel = document.getElementById('template_id');
+  sel.value = gallerySelected;
+  closeGallery();
+  showToast('已切换到「' + (gallerySelected) + '」模板', 'ok');
 }
 </script>
 </body>

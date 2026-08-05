@@ -420,6 +420,19 @@ async function handler(req, res) {
     return res.status(200).send(_htmlTemplate());
   }
 
+  // GET /previews/*.html → 模板预览静态文件
+  if (req.method === 'GET' && path.startsWith('/previews/') && path.endsWith('.html')) {
+    const { createReadStream, existsSync } = await import('fs');
+    // path like /previews/zhaojian-001-editorial.html → previews/zhaojian-001-editorial.html
+    const safePath = 'previews/' + path.split('/previews/')[1];
+    if (!safePath.includes('..') && existsSync(safePath)) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.status(200).send(createReadStream(safePath));
+    }
+    return res.status(404).json({ error: 'Preview not found: ' + path });
+  }
+
   // POST handling
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });

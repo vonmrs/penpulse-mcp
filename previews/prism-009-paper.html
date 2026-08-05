@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>模板参考</title>
+</head>
+<body>
+<!-- 顶部区 -->
+<section style="padding: 0; background: #0f0f1a;">
+  <section style="padding: 48px 28px 40px; border-bottom: 1px solid #2a2a4a;">
+    <p style="font-size: 11px; color: #e2b82a; letter-spacing: 3px; margin: 0 0 16px; text-transform: uppercase;">Paper Review</p>
+    <h1 style="font-size: 24px; font-weight: 900; color: #ffffff; line-height: 1.3; margin: 0 0 12px;">Attention Is All You Need</h1>
+    <p style="font-size: 13px; color: #8b949e; margin: 0 0 6px;">Vaswani et al. · Google Brain & Google Research · 2017</p>
+    <p style="font-size: 12px; color: #58a6ff; margin: 0;">arXiv: 1706.03762 | NeurIPS 2017</p>
+  </section>
+</section>
+<!-- 正文区 -->
+<section style="padding: 24px 20px 32px; background: #0f0f1a;">
+  <!-- 摘要 -->
+  <section style="background: #16162a; border-left: 3px solid #e2b82a; padding: 16px 18px; margin-bottom: 20px;">
+    <p style="font-size: 11px; color: #e2b82a; letter-spacing: 2px; margin: 0 0 10px; text-transform: uppercase;">Abstract</p>
+    <p style="font-size: 14px; color: #b0b0c0; line-height: 1.9; margin: 0; font-style: italic;">主流序列转导模型基于复杂的循环或卷积神经网络，包含编码器和解码器。表现最好的模型通过注意力机制连接编码器和解码器。我们提出一种全新的简单架构——Transformer，仅基于注意力机制，完全摒弃了循环和卷积。</p>
+  </section>
+  <!-- 核心贡献 -->
+  <section style="margin-bottom: 20px;">
+    <p style="font-size: 11px; color: #8b949e; letter-spacing: 2px; margin: 0 0 12px; text-transform: uppercase;">// 核心贡献</p>
+    <p style="font-size: 14px; color: #e0e0e0; line-height: 1.8; margin: 0 0 10px;"><span style="color: #e2b82a;">★</span> 完全基于注意力机制，抛弃RNN/CNN</p>
+    <p style="font-size: 14px; color: #e0e0e0; line-height: 1.8; margin: 0 0 10px;"><span style="color: #e2b82a;">★</span> 并行化程度极高，训练速度大幅提升</p>
+    <p style="font-size: 14px; color: #e0e0e0; line-height: 1.8; margin: 0;"><span style="color: #e2b82a;">★</span> 成为几乎所有现代大模型的基础架构</p>
+  </section>
+  <!-- 关键方法 -->
+  <section style="background: #16162a; border-radius: 6px; padding: 16px 18px; margin-bottom: 20px;">
+    <p style="font-size: 11px; color: #8b949e; letter-spacing: 2px; margin: 0 0 10px; text-transform: uppercase;">// 关键方法</p>
+    <p style="font-size: 14px; color: #c0c0d0; line-height: 1.8; margin: 0 0 8px;">Multi-Head Self-Attention（多头自注意力）：将输入分成多个头并行计算注意力，捕捉不同层面的语义关系。</p>
+    <p style="font-size: 14px; color: #c0c0d0; line-height: 1.8; margin: 0;">Positional Encoding（位置编码）：用固定向量注入序列位置信息，弥补并行计算失去的顺序感知。</p>
+  </section>
+  <!-- 棱镜点评 -->
+  <section style="border-top: 1px solid #2a2a4a; padding-top: 16px;">
+    <p style="font-size: 11px; color: #8b949e; letter-spacing: 2px; margin: 0 0 10px; text-transform: uppercase;">// 棱镜点评</p>
+    <p style="font-size: 14px; color: #b0b0c0; line-height: 1.8; margin: 0;">这篇论文是现代NLP的转折点。从BERT到GPT，从T5到ChatGPT，所有大模型都站在Transformer的肩膀上。2026年回头看，这篇论文的意义已远超学术本身。</p>
+  </section>
+</section>
+</body>
+</html>
