@@ -31,7 +31,6 @@ const _htmlTemplate = () => {
     line-height: 1.6;
   }
 
-  /* Header */
   header {
     border-bottom: 1px solid var(--border);
     padding: 16px 24px;
@@ -55,7 +54,6 @@ const _htmlTemplate = () => {
     border: 1px solid rgba(99,102,241,0.3);
   }
 
-  /* Main Layout */
   .container {
     max-width: 1100px;
     margin: 0 auto;
@@ -65,7 +63,6 @@ const _htmlTemplate = () => {
   h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
   .subtitle { color: var(--text-muted); margin-bottom: 32px; }
 
-  /* Card */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -83,7 +80,6 @@ const _htmlTemplate = () => {
     gap: 8px;
   }
 
-  /* Form Grid */
   .form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -110,7 +106,6 @@ const _htmlTemplate = () => {
 
   .full { grid-column: 1 / -1; }
 
-  /* Buttons */
   .btn-primary {
     background: linear-gradient(135deg, var(--primary), #4f46e5);
     color: #fff;
@@ -143,7 +138,6 @@ const _htmlTemplate = () => {
 
   .btn-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 
-  /* Status / Log */
   .log-area {
     background: #080d17;
     border: 1px solid var(--border);
@@ -162,7 +156,6 @@ const _htmlTemplate = () => {
   .log-line.info { color: var(--accent); }
   .log-line .ts { color: #4b5563; min-width: 55px; }
 
-  /* Topic Cards */
   .topics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -189,7 +182,6 @@ const _htmlTemplate = () => {
     color: var(--primary-hover);
   }
 
-  /* Preview */
   .preview-frame {
     width: 100%;
     height: 500px;
@@ -200,7 +192,6 @@ const _htmlTemplate = () => {
     margin-top: 16px;
   }
 
-  /* Pipeline Steps */
   .pipeline-steps {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -221,7 +212,6 @@ const _htmlTemplate = () => {
   .step.done { border-color: var(--success); color: var(--success); background: rgba(16,185,129,0.08); }
   .step-icon { font-size: 18px; display: block; margin-bottom: 4px; }
 
-  /* Footer */
   footer {
     text-align: center;
     color: #4b5563;
@@ -231,7 +221,6 @@ const _htmlTemplate = () => {
     margin-top: 40px;
   }
 
-  /* Toast */
   .toast {
     position: fixed;
     bottom: 24px;
@@ -329,6 +318,58 @@ const _htmlTemplate = () => {
     .gallery-grid { grid-template-columns: repeat(4, 1fr); }
     .gallery-panel { max-height: 95vh; }
   }
+
+  /* Upload Zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+  }
+  .upload-zone:hover { border-color: var(--primary); background: rgba(99,102,241,0.05); }
+  .upload-zone.dragover { border-color: var(--success); background: rgba(16,185,129,0.1); }
+  .upload-zone .icon { font-size: 36px; margin-bottom: 8px; }
+  .upload-zone p { color: var(--text-muted); font-size: 14px; }
+  .upload-zone .hint { font-size: 12px; color: #4b5563; margin-top: 4px; }
+  #fileInput { display: none; }
+
+  /* Tab Bar */
+  .main-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+    border-bottom: 2px solid var(--border);
+  }
+  .main-tab {
+    flex: 1;
+    padding: 14px 20px;
+    text-align: center;
+    font-size: 14px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-weight: 500;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .main-tab:hover { color: var(--text); }
+  .main-tab.active { color: var(--primary-hover); }
+  .main-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 1px;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
 </style>
 </head>
 <body>
@@ -345,35 +386,94 @@ const _htmlTemplate = () => {
     <p class="subtitle">选题 · AI 写作 · 智能排版 · 封面生成 · 自动发布，全链路自动化</p>
   </div>
 
-  <div class="card">
-    <div class="pipeline-steps">
-      <div class="step active" id="step1"><span class="step-icon">🔍</span>选题</div>
-      <div class="step" id="step2"><span class="step-icon">✍️</span>写作</div>
-      <div class="step" id="step3"><span class="step-icon">🎨</span>排版</div>
-      <div class="step" id="step4"><span class="step-icon">🖼️</span>封面</div>
-      <div class="step" id="step5"><span class="step-icon">🚀</span>发布</div>
-    </div>
+  <div class="main-tabs">
+    <button class="main-tab active" id="tabPipeline" onclick="switchMainTab('pipeline')">🤖 AI 全链路</button>
+    <button class="main-tab" id="tabUpload" onclick="switchMainTab('upload')">📄 文档导入</button>
+  </div>
 
-    <div class="form-grid">
-      <div class="form-group">
-        <label>选题关键词</label>
-        <input type="text" id="keyword" value="荆州 文旅" placeholder="例如：荆州高考、荆州招商">
+  <!-- AI Pipeline Panel -->
+  <div class="tab-panel active" id="panelPipeline">
+    <div class="card">
+      <div class="pipeline-steps">
+        <div class="step active" id="step1"><span class="step-icon">🔍</span>选题</div>
+        <div class="step" id="step2"><span class="step-icon">✍️</span>写作</div>
+        <div class="step" id="step3"><span class="step-icon">🎨</span>排版</div>
+        <div class="step" id="step4"><span class="step-icon">🖼️</span>封面</div>
+        <div class="step" id="step5"><span class="step-icon">🚀</span>发布</div>
       </div>
-      <div class="form-group">
-        <label>搜索天数</label>
-        <select id="days">
-          <option value="3">最近 3 天</option>
-          <option value="7" selected>最近 7 天</option>
-          <option value="14">最近 14 天</option>
-          <option value="30">最近 30 天</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <div class="gallery-label-row">
-          <label>排版模板</label>
-          <button class="gallery-btn" onclick="openGallery()">📋 预览效果</button>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>选题关键词</label>
+          <input type="text" id="keyword" value="荆州 文旅" placeholder="例如：荆州高考、荆州招商">
         </div>
-        <select id="template_id">
+        <div class="form-group">
+          <label>搜索天数</label>
+          <select id="days">
+            <option value="3">最近 3 天</option>
+            <option value="7" selected>最近 7 天</option>
+            <option value="14">最近 14 天</option>
+            <option value="30">最近 30 天</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="gallery-label-row">
+            <label>排版模板</label>
+            <button class="gallery-btn" onclick="openGallery()">📋 预览效果</button>
+          </div>
+          <select id="template_id">
+            <option value="journal">📰 晨报头版（朝鉴风格）</option>
+            <option value="magazine">📖 杂志封面</option>
+            <option value="cards">🃏 卡片瀑布流</option>
+            <option value="dashboard">📊 数据仪表盘</option>
+            <option value="minimal">✦ 极简留白</option>
+            <option value="chat">💬 对话气泡</option>
+            <option value="terminal">💻 终端界面（棱镜风格）</option>
+            <option value="editor">⌨️ 代码编辑器</option>
+            <option value="neon">🌆 霓虹赛博</option>
+            <option value="glass">🔮 毛玻璃卡片</option>
+            <option value="geek">🧪 极客简约</option>
+            <option value="hologram">🔮 全息投影</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>公众号</label>
+          <select id="account_id">
+            <option value="yinshuju">银枢局</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="btnRun" onclick="runPipeline()">▶ 一键运行全链路</button>
+        <button class="btn-secondary" onclick="runStep('research')">🔍 只搜选题</button>
+        <button class="btn-secondary" onclick="runStep('format')">🎨 只排版</button>
+        <button class="btn-secondary" onclick="clearLog()">🗑️ 清空日志</button>
+      </div>
+
+      <div class="topics-grid" id="topicsGrid" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Upload Panel -->
+  <div class="tab-panel" id="panelUpload">
+    <div class="card">
+      <div class="card-title">📤 上传文档</div>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="icon">📄</div>
+        <p>点击上传或拖拽 .docx / .md 文件</p>
+        <p class="hint">支持 Word 文档和 Markdown 文件</p>
+      </div>
+      <input type="file" id="fileInput" accept=".docx,.md,.txt" onchange="handleFileSelect(this)">
+      
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label>文章标题（可选，留空自动从内容提取）</label>
+        <input type="text" id="uploadTitle" placeholder="输入标题...">
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label>排版模板</label>
+        <select id="uploadTemplate">
           <option value="journal">📰 晨报头版（朝鉴风格）</option>
           <option value="magazine">📖 杂志封面</option>
           <option value="cards">🃏 卡片瀑布流</option>
@@ -388,24 +488,20 @@ const _htmlTemplate = () => {
           <option value="hologram">🔮 全息投影</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>公众号</label>
-        <select id="account_id">
-          <option value="yinshuju">银枢局</option>
-        </select>
+
+      <div class="btn-row">
+        <button class="btn-primary" onclick="uploadAndProcess()">⚡ 解析 → 排版 → 发布</button>
+        <button class="btn-secondary" onclick="previewUpload()">👁️ 预览解析</button>
+      </div>
+
+      <div id="uploadPreview" style="margin-top: 16px; display: none;">
+        <label>解析预览</label>
+        <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 13px; color: var(--text-muted); max-height: 200px; overflow-y: auto; line-height: 1.6;" id="uploadPreviewContent"></div>
       </div>
     </div>
-
-    <div class="btn-row">
-      <button class="btn-primary" id="btnRun" onclick="runPipeline()">▶ 一键运行全链路</button>
-      <button class="btn-secondary" onclick="runStep('research')">🔍 只搜选题</button>
-      <button class="btn-secondary" onclick="runStep('format')">🎨 只排版</button>
-      <button class="btn-secondary" onclick="clearLog()">🗑️ 清空日志</button>
-    </div>
-
-    <div class="topics-grid" id="topicsGrid" style="display:none;"></div>
   </div>
 
+  <!-- Log -->
   <div class="card">
     <div class="card-title">📋 执行日志</div>
     <div class="log-area" id="logArea">
@@ -413,6 +509,7 @@ const _htmlTemplate = () => {
     </div>
   </div>
 
+  <!-- Preview -->
   <div class="card" id="previewCard" style="display:none;">
     <div class="card-title">
       📄 预览
@@ -427,6 +524,7 @@ const _htmlTemplate = () => {
   PenPulse · AI 内容自动化平台 · © 2026 · <a href="https://inzu.com.cn" style="color:#6366f1;text-decoration:none;">inzu.com.cn</a>
 </footer>
 
+<!-- Template Gallery Modal -->
 <div class="gallery-modal" id="galleryModal" onclick="if(event.target===this)closeGallery()">
   <div class="gallery-panel">
     <div class="gallery-header">
@@ -459,14 +557,13 @@ const _htmlTemplate = () => {
 
 <script>
 const API_BASE = '/api';
+let state = { draft_id: '', preview_url: '', html: '', uploadContent: '' };
 
-let state = { draft_id: '', preview_url: '', html: '' };
-
-function log(msg, type='') {
+function log(msg, type) {
   const el = document.getElementById('logArea');
   const ts = new Date().toLocaleTimeString('zh-CN', {hour12:false});
   const div = document.createElement('div');
-  div.className = 'log-line ' + type;
+  div.className = 'log-line ' + (type || '');
   div.innerHTML = '<span class="ts">[' + ts + ']</span> ' + msg;
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
@@ -481,23 +578,31 @@ function setStep(n, cls) {
   }
 }
 
-function showToast(msg, type='ok') {
+function showToast(msg, type) {
+  type = type || 'ok';
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.className = 'toast ' + type;
   el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 3000);
+  setTimeout(function() { el.style.display = 'none'; }, 3000);
 }
 
 function clearLog() {
   document.getElementById('logArea').innerHTML = '<div class="log-line info"><span class="ts">[空闲]</span> 日志已清空</div>';
 }
 
+function switchMainTab(tab) {
+  document.getElementById('tabPipeline').classList.toggle('active', tab === 'pipeline');
+  document.getElementById('tabUpload').classList.toggle('active', tab === 'upload');
+  document.getElementById('panelPipeline').classList.toggle('active', tab === 'pipeline');
+  document.getElementById('panelUpload').classList.toggle('active', tab === 'upload');
+}
+
 async function callAPI(action, params) {
   const resp = await fetch(API_BASE, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ action, ...params })
+    body: JSON.stringify({ action: action, ...params })
   });
   return resp.json();
 }
@@ -512,7 +617,7 @@ async function runStep(step) {
     });
     if (r.status === 'ok') {
       log('✅ 找到 ' + r.topics.length + ' 条选题', 'ok');
-      r.topics.slice(0,6).forEach(t => log('  · ' + t.title + '  [' + t.source + ' / ' + t.tag + ']'));
+      r.topics.slice(0,6).forEach(function(t) { log('  · ' + t.title + '  [' + t.source + ' / ' + t.tag + ']'); });
       setStep(1, 'done');
     } else {
       log('❌ ' + (r.message || '搜索失败'), 'error');
@@ -540,7 +645,7 @@ async function runPipeline() {
   btn.disabled = true;
   btn.textContent = '⏳ 运行中...';
   clearLog();
-  state = { draft_id: '', preview_url: '', html: '' };
+  state = { draft_id: '', preview_url: '', html: '', uploadContent: '' };
   document.getElementById('previewCard').style.display = 'none';
   document.getElementById('topicsGrid').style.display = 'none';
 
@@ -569,7 +674,7 @@ async function runPipeline() {
       log('🎉 全链路执行完成！请在公众号后台审核发布', 'ok');
       showToast('草稿已推送，请去公众号后台审核发布', 'ok');
       if (r.preview_url) {
-        setTimeout(() => window.open(r.preview_url, '_blank'), 1500);
+        setTimeout(function() { window.open(r.preview_url, '_blank'); }, 1500);
       }
     } else {
       log('❌ 失败: ' + (r.message || JSON.stringify(r)), 'error');
@@ -594,6 +699,90 @@ function showPreview(html) {
 function openInWechat() {
   if (state.preview_url) window.open(state.preview_url, '_blank');
   else window.open('https://mp.weixin.qq.com', '_blank');
+}
+
+// File Upload
+function handleFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    state.uploadContent = e.target.result;
+    log('📄 已加载文件: ' + file.name + ' (' + Math.round(file.size/1024) + 'KB)', 'ok');
+    document.getElementById('uploadPreview').style.display = 'block';
+    document.getElementById('uploadPreviewContent').textContent = state.uploadContent.substring(0, 500) + (state.uploadContent.length > 500 ? '...' : '');
+  };
+  
+  if (file.name.endsWith('.docx')) {
+    reader.readAsArrayBuffer(file);
+  } else {
+    reader.readAsText(file);
+  }
+}
+
+function previewUpload() {
+  if (!state.uploadContent) {
+    showToast('请先选择文件', 'error');
+    return;
+  }
+  document.getElementById('uploadPreview').style.display = 'block';
+  document.getElementById('uploadPreviewContent').textContent = state.uploadContent.substring(0, 1000) + (state.uploadContent.length > 1000 ? '...' : '');
+}
+
+async function uploadAndProcess() {
+  if (!state.uploadContent) {
+    showToast('请先选择文件', 'error');
+    return;
+  }
+  
+  clearLog();
+  log('📤 开始处理上传的文档...');
+  
+  try {
+    const r = await callAPI('upload', {
+      content: state.uploadContent,
+      title: document.getElementById('uploadTitle').value,
+      template_id: document.getElementById('uploadTemplate').value,
+      account_id: 'yinshuju'
+    });
+    
+    if (r.status === 'ok') {
+      log('✅ 文档处理完成', 'ok');
+      log('📝 草稿已推送至公众号后台', 'ok');
+      if (r.preview_url) log('🔗 预览链接：' + r.preview_url);
+      showToast('文档处理完成！', 'ok');
+      state.preview_url = r.preview_url;
+      if (r.html) showPreview(r.html);
+    } else {
+      log('❌ 处理失败: ' + r.message, 'error');
+      showToast('处理失败', 'error');
+    }
+  } catch(e) {
+    log('❌ 网络错误: ' + e.message, 'error');
+    showToast('网络错误', 'error');
+  }
+}
+
+// Drag and drop
+const uploadZone = document.getElementById('uploadZone');
+if (uploadZone) {
+  uploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadZone.classList.add('dragover');
+  });
+  uploadZone.addEventListener('dragleave', function() {
+    uploadZone.classList.remove('dragover');
+  });
+  uploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      document.getElementById('fileInput').files = files;
+      handleFileSelect(document.getElementById('fileInput'));
+    }
+  });
 }
 
 // Template Gallery
@@ -663,21 +852,23 @@ function switchTab(tab) {
 function renderGrid(tab) {
   const grid = document.getElementById('galleryGrid');
   const templates = TEMPLATES[tab];
-  grid.innerHTML = templates.map(t => '<div class="gallery-card" id="card-' + t.id + '" onclick="selectTemplate(\'' + t.id + '\')">' +
-    '<div class="gallery-card-num">' + t.file.split('-')[1] + '</div>' +
-    '<div class="gallery-card-icon">' + t.icon + '</div>' +
-    '<div class="gallery-card-name">' + t.name + '</div>' +
-    '<div class="gallery-card-desc">' + t.desc + '</div>' +
-    '</div>').join('');
+  grid.innerHTML = templates.map(function(t) {
+    return '<div class="gallery-card" id="card-' + t.id + '" onclick="selectTemplate(\'' + t.id + '\')">' +
+      '<div class="gallery-card-num">' + t.file.split('-')[1] + '</div>' +
+      '<div class="gallery-card-icon">' + t.icon + '</div>' +
+      '<div class="gallery-card-name">' + t.name + '</div>' +
+      '<div class="gallery-card-desc">' + t.desc + '</div>' +
+      '</div>';
+  }).join('');
 }
 
 function selectTemplate(id) {
   gallerySelected = id;
   const templates = TEMPLATES[galleryTab];
-  const tpl = templates.find(t => t.id === id);
+  const tpl = templates.find(function(t) { return t.id === id; });
   if (!tpl) return;
 
-  document.querySelectorAll('.gallery-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.gallery-card').forEach(function(c) { c.classList.remove('selected'); });
   const card = document.getElementById('card-' + id);
   if (card) card.classList.add('selected');
 
@@ -723,7 +914,7 @@ async function handleHome(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  res.setHeader('X-Build-Version', '20250806-02');
+  res.setHeader('X-Build-Version', '20250806-03');
   return res.status(200).send(_htmlTemplate());
 }
 
@@ -754,7 +945,7 @@ export default async function handler(req, res) {
     return handlePreviews(req, res, path);
   }
 
-  // GET / → 前端页面
+  // GET / -> frontend page
   if (req.method === 'GET' && path === '/') {
     return handleHome(req, res);
   }
@@ -783,7 +974,7 @@ export default async function handler(req, res) {
       case 'upload':
         return res.status(200).json(await uploadModule.upload(params));
       case 'pipeline':
-        return res.status(200).json(await runPipeline(params));
+        return res.status(200).json(await runPipeline(params, { formatModule, researchModule, publishModule }));
       default:
         return res.status(400).json({ error: 'Unknown action: ' + action });
     }
@@ -792,8 +983,8 @@ export default async function handler(req, res) {
   }
 }
 
-async function runPipeline(params) {
-  const { formatModule, researchModule, publishModule } = await getModules();
+async function runPipeline(params, modules) {
+  const { formatModule, researchModule, publishModule } = modules;
   
   // Step 1: Research
   const researchResult = await researchModule.research(params);
