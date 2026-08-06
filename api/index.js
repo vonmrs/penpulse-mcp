@@ -1,8 +1,6 @@
-let FRONTEND_HTML;
+// 不缓存，每次调用实时生成（避免 Serverless 冷启动缓存旧版本）
 const _htmlTemplate = () => {
-  if (FRONTEND_HTML) return FRONTEND_HTML;
-  // Build once, cache forever
-  FRONTEND_HTML = `<!DOCTYPE html>
+  const FRONTEND_HTML = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
