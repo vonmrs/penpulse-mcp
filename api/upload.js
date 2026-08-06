@@ -163,8 +163,25 @@ async function parseFile({ file_base64, filename }) {
 export default async function uploadHandler(req, res) {
   try {
     // 子模块调用：index.js 直接传参，res 为 undefined
-    if (res === undefined && req && req.file_base64) {
-      return parseFile({ file_base64: req.file_base64, filename: req.title });
+    if (res === undefined && req) {
+      if (req.file_base64) {
+        // docx: 后端解析 ZIP
+        return parseFile({ file_base64: req.file_base64, filename: req.title });
+      }
+      if (req.content) {
+        // md/txt: 文本直接处理
+        const text = String(req.content);
+        const markdown = text.startsWith('#') ? text : toMarkdown(text);
+        return {
+          status: 'ok',
+          markdown,
+          text,
+          word_count: text.replace(/\s/g, '').length,
+          char_count: text.length,
+          default_title: text.split(/\r?\n/)[0].trim().slice(0, 64) || '文档',
+          filename: req.title || '文档.txt',
+        };
+      }
     }
 
     res.setHeader('Access-Control-Allow-Origin', '*');

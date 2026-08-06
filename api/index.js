@@ -1037,13 +1037,13 @@ export default async function handler(req, res) {
   try {
     switch (action) {
       case 'research':
-        return res.status(200).json(await researchModule.research(params));
+        return res.status(200).json(await researchModule.default(params));
       case 'format':
-        return res.status(200).json(await formatModule.format(params));
+        return res.status(200).json(await formatModule.default(params));
       case 'publish':
-        return res.status(200).json(await publishModule.publish(params));
+        return res.status(200).json(await publishModule.default(params));
       case 'upload':
-        return res.status(200).json(await uploadModule.upload(params));
+        return res.status(200).json(await uploadModule.default(params));
       case 'pipeline':
         return res.status(200).json(await runPipeline(params, { formatModule, researchModule, publishModule }));
       default:
@@ -1058,18 +1058,18 @@ async function runPipeline(params, modules) {
   const { formatModule, researchModule, publishModule } = modules;
   
   // Step 1: Research
-  const researchResult = await researchModule.research(params);
+  const researchResult = await researchModule.default(params);
   if (researchResult.status !== 'ok') return researchResult;
   
   // Step 2: Format
-  const formatResult = await formatModule.format({
+  const formatResult = await formatModule.default({
     markdown: researchResult.markdown,
     template_id: params.template_id
   });
   if (formatResult.status !== 'ok') return formatResult;
   
   // Step 3: Publish
-  const publishResult = await publishModule.publish({
+  const publishResult = await publishModule.default({
     html: formatResult.html,
     title: formatResult.title,
     account_id: params.account_id
