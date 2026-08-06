@@ -415,6 +415,9 @@ async function handler(req, res) {
   // GET / → 前端页面
   if (req.method === 'GET' && path === '/') {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     return res.status(200).send(_htmlTemplate());
   }
 
