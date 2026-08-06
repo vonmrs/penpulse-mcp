@@ -766,7 +766,7 @@ function handleFileSelect(input) {
     document.getElementById('uploadPreview').style.display = 'block';
     if (isDocx) {
       var previewEl = document.getElementById('uploadPreviewContent');
-      previewEl.innerHTML = "<span style="color:var(--primary);font-size:13px;line-height:1.8;">✅ 文件已就绪，将在服务器端解析为可读文本</span>";
+      previewEl.innerHTML = "<span style=\"color:var(--primary);font-size:13px;line-height:1.8;\">✅ 文件已就绪，将在服务器端解析为可读文本</span>";
     } else {
       var previewText = state.uploadContent.substring(0, 500);
       if (state.uploadContent.length > 500) {
