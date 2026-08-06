@@ -765,9 +765,14 @@ function handleFileSelect(input) {
     if (zoneHint) zoneHint.textContent = '点击可重新选择文件';
     document.getElementById('uploadPreview').style.display = 'block';
     if (isDocx) {
-      document.getElementById('uploadPreviewContent').innerHTML = '<span style="color:var(--primary);font-size:13px;line-height:1.8;">✅ 文件已就绪，将在服务器端解析为可读文本</span>';
+      var previewEl = document.getElementById('uploadPreviewContent');
+      previewEl.innerHTML = "<span style="color:var(--primary);font-size:13px;line-height:1.8;">✅ 文件已就绪，将在服务器端解析为可读文本</span>";
     } else {
-      document.getElementById('uploadPreviewContent').textContent = state.uploadContent.substring(0, 500) + (state.uploadContent.length > 500 ? '\n\n[...]（后续内容将在服务器端处理）' : '');
+      var previewText = state.uploadContent.substring(0, 500);
+      if (state.uploadContent.length > 500) {
+        previewText = previewText + '\x0a\x0a[...]（后续内容将在服务器端处理）';
+      }
+      document.getElementById('uploadPreviewContent').textContent = previewText;
     }
   };
   
@@ -780,7 +785,9 @@ function previewUpload() {
     return;
   }
   document.getElementById('uploadPreview').style.display = 'block';
-  document.getElementById('uploadPreviewContent').textContent = state.uploadContent.substring(0, 1000) + (state.uploadContent.length > 1000 ? '...' : '');
+  var previewText2 = state.uploadContent.substring(0, 1000);
+  if (state.uploadContent.length > 1000) previewText2 = previewText2 + '\x0a\x0a[...]（后续内容将在服务器端处理）';
+  document.getElementById('uploadPreviewContent').textContent = previewText2;
 }
 
 async function uploadAndProcess() {
