@@ -831,6 +831,7 @@ function openGallery() {
   document.getElementById('galleryIframe').style.display = 'none';
   document.getElementById('galleryPreviewTitle').innerHTML = '选择模板查看效果';
   renderGrid('zhaojian');
+  bindGalleryGrid();
 }
 
 function closeGallery() {
@@ -853,13 +854,24 @@ function renderGrid(tab) {
   const grid = document.getElementById('galleryGrid');
   const templates = TEMPLATES[tab];
   grid.innerHTML = templates.map(function(t) {
-    return '<div class="gallery-card" id="card-' + t.id + '" onclick="selectTemplate(\'' + t.id + '\')">' +
+    return '<div class="gallery-card" id="card-' + t.id + '" data-id="' + t.id + '">' +
       '<div class="gallery-card-num">' + t.file.split('-')[1] + '</div>' +
       '<div class="gallery-card-icon">' + t.icon + '</div>' +
       '<div class="gallery-card-name">' + t.name + '</div>' +
       '<div class="gallery-card-desc">' + t.desc + '</div>' +
       '</div>';
   }).join('');
+}
+
+function bindGalleryGrid() {
+  const grid = document.getElementById('galleryGrid');
+  if (grid && !grid.dataset.bound) {
+    grid.addEventListener('click', function(e) {
+      const card = e.target.closest('.gallery-card');
+      if (card) selectTemplate(card.getAttribute('data-id'));
+    });
+    grid.dataset.bound = '1';
+  }
 }
 
 function selectTemplate(id) {
@@ -914,7 +926,7 @@ async function handleHome(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  res.setHeader('X-Build-Version', '20250806-04-clean-redeploy');
+  res.setHeader('X-Build-Version', '20250806-05-event-delegation');
   return res.status(200).send(_htmlTemplate());
 }
 
