@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta name="x-build" content="20250806-10-static">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PenPulse · AI 内容自动化</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --border: #1f2937;
+    --primary: #6366f1;
+    --primary-hover: #818cf8;
+    --accent: #22d3ee;
+    --text: #f9fafb;
+    --text-muted: #9ca3af;
+    --success: #10b981;
+    --error: #ef4444;
+    --warning: #f59e0b;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(99,102,241,0.15);
+    color: var(--primary-hover);
+    border: 1px solid rgba(99,102,241,0.3);
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .subtitle { color: var(--text-muted); margin-bottom: 32px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  label { font-size: 13px; color: var(--text-muted); }
+  input, select, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--primary);
+  }
+  textarea { resize: vertical; min-height: 100px; }
+
+  .full { grid-column: 1 / -1; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary), #4f46e5);
+    color: #fff;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--primary); color: var(--primary-hover); }
+
+  .btn-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+  .log-area {
+    background: #080d17;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    max-height: 420px;
+    overflow-y: auto;
+    margin-top: 16px;
+  }
+  .log-line { display: flex; gap: 10px; color: var(--text-muted); }
+  .log-line.ok { color: var(--success); }
+  .log-line.error { color: var(--error); }
+  .log-line.info { color: var(--accent); }
+  .log-line .ts { color: #4b5563; min-width: 55px; }
+
+  .topics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .topic-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .topic-card:hover { border-color: var(--primary); background: rgba(99,102,241,0.05); }
+  .topic-card .title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .topic-card .meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 10px; }
+  .topic-card .tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    background: rgba(99,102,241,0.15);
+    color: var(--primary-hover);
+  }
+
+  .preview-frame {
+    width: 100%;
+    height: 500px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    color: #333;
+    margin-top: 16px;
+  }
+
+  .pipeline-steps {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .step {
+    text-align: center;
+    padding: 10px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    transition: all 0.3s;
+  }
+  .step.active { border-color: var(--primary); color: var(--primary-hover); background: rgba(99,102,241,0.08); }
+  .step.done { border-color: var(--success); color: var(--success); background: rgba(16,185,129,0.08); }
+  .step-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+
+  footer {
+    text-align: center;
+    color: #4b5563;
+    font-size: 12px;
+    padding: 24px;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    transition: opacity 0.3s;
+  }
+  .toast.ok { background: var(--success); color: #fff; }
+  .toast.error { background: var(--error); color: #fff; }
+
+  @media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .pipeline-steps { grid-template-columns: repeat(5, 1fr); }
+  }
+
+  /* Template Gallery */
+  .gallery-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    background: rgba(99,102,241,0.15); color: #818cf8;
+    border: 1px solid rgba(99,102,241,0.3); cursor: pointer;
+    transition: all 0.2s; margin-left: 8px; white-space: nowrap;
+  }
+  .gallery-btn:hover { background: rgba(99,102,241,0.25); border-color: #6366f1; }
+  .gallery-label-row { display: flex; align-items: center; margin-bottom: 6px; }
+  .gallery-label-row label { margin-bottom: 0; }
+
+  .gallery-modal {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .gallery-modal.open { display: flex; }
+  .gallery-panel {
+    background: #111827; border: 1px solid #1f2937; border-radius: 16px;
+    width: 100%; max-width: 1100px; max-height: 90vh; display: flex;
+    flex-direction: column; overflow: hidden;
+  }
+  .gallery-header {
+    display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+    border-bottom: 1px solid #1f2937; flex-shrink: 0;
+  }
+  .gallery-header h2 { font-size: 16px; font-weight: 600; color: #f9fafb; margin: 0; flex: 1; }
+  .gallery-close {
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid #1f2937;
+    background: transparent; color: #9ca3af; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .gallery-close:hover { background: #1f2937; color: #fff; }
+  .gallery-tabs {
+    display: flex; gap: 8px; padding: 0 20px; border-bottom: 1px solid #1f2937;
+    flex-shrink: 0;
+  }
+  .gallery-tab {
+    padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
+    border: none; background: transparent; color: #6b7280;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+  .gallery-tab:hover { color: #9ca3af; }
+  .gallery-tab.active { color: #818cf8; border-bottom-color: #6366f1; }
+  .gallery-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+  .gallery-grid-wrap { width: 320px; flex-shrink: 0; overflow-y: auto; padding: 16px; border-right: 1px solid #1f2937; }
+  .gallery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .gallery-card {
+    background: #0a0e1a; border: 1.5px solid #1f2937; border-radius: 10px;
+    padding: 10px; cursor: pointer; transition: all 0.2s;
+  }
+  .gallery-card:hover { border-color: #6366f1; background: rgba(99,102,241,0.06); }
+  .gallery-card.selected { border-color: #6366f1; background: rgba(99,102,241,0.12); }
+  .gallery-card-num { font-size: 10px; color: #4b5563; margin-bottom: 4px; }
+  .gallery-card-icon { font-size: 20px; margin-bottom: 6px; }
+  .gallery-card-name { font-size: 12px; font-weight: 600; color: #e5e7eb; line-height: 1.3; margin-bottom: 3px; }
+  .gallery-card-desc { font-size: 10px; color: #6b7280; line-height: 1.3; }
+  .gallery-preview { flex: 1; padding: 16px; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+  .gallery-preview-header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .gallery-preview-title { font-size: 13px; color: #9ca3af; }
+  .gallery-preview-title strong { color: #818cf8; }
+  .gallery-use-btn {
+    padding: 7px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600;
+    background: #6366f1; color: #fff; cursor: pointer; transition: all 0.2s;
+  }
+  .gallery-use-btn:hover { background: #818cf8; }
+  .gallery-iframe-wrap { flex: 1; border: 1px solid #1f2937; border-radius: 10px; overflow: hidden; background: #fff; }
+  .gallery-iframe { width: 100%; height: 100%; border: none; display: block; }
+  .gallery-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: #4b5563; font-size: 14px; }
+  @media (max-width: 768px) {
+    .gallery-body { flex-direction: column; }
+    .gallery-grid-wrap { width: 100%; border-right: none; border-bottom: 1px solid #1f2937; max-height: 200px; }
+    .gallery-grid { grid-template-columns: repeat(4, 1fr); }
+    .gallery-panel { max-height: 95vh; }
+  }
+
+  /* Upload Zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+  }
+  .upload-zone:hover { border-color: var(--primary); background: rgba(99,102,241,0.05); }
+  .upload-zone.dragover { border-color: var(--success); background: rgba(16,185,129,0.1); }
+  .upload-zone .icon { font-size: 36px; margin-bottom: 8px; }
+  .upload-zone p { color: var(--text-muted); font-size: 14px; }
+  .upload-zone .hint { font-size: 12px; color: #4b5563; margin-top: 4px; }
+  #fileInput { display: none; }
+
+  /* Tab panels */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Mode Switcher — pill toggle */
+  .mode-switcher {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 20px;
+    background: var(--surface);
+    padding: 3px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .mode-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 20px;
+    border: none;
+    border-radius: 9px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .mode-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .mode-btn.active {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(99,102,241,0.4);
+  }
+  .mode-icon { font-size: 15px; }
+  #pipelineSteps {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 6px;
+    border: 1px solid var(--border);
+  }
+
+  /* Outline buttons */
+  .btn-outline {
+    background: transparent;
+    color: var(--text-muted);
+    font-weight: 500;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: rgba(99,102,241,0.06); }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">PenPulse</span>
+  <span class="badge">AI 内容自动化</span>
+</header>
+
+<div class="container">
+
+  <div style="margin-bottom: 32px;">
+    <h1>一键生成公众号内容</h1>
+    <p class="subtitle">选题 · AI 写作 · 智能排版 · 封面生成 · 自动发布，全链路自动化</p>
+  </div>
+
+  <!-- AI Pipeline Panel -->
+  <!-- 统一模式 + 共享模板 -->
+  <div class="tab-panel active" id="panelPipeline">
+    <div class="card">
+      <!-- 模式切换 -->
+      <div class="mode-switcher">
+        <div class="mode-btn active" id="modeBtnPipeline" onclick="switchMainTab('pipeline')">
+          <span class="mode-icon">🤖</span><span>AI 全链路</span>
+        </div>
+        <div class="mode-btn" id="modeBtnUpload" onclick="switchMainTab('upload')">
+          <span class="mode-icon">📄</span><span>文档导入</span>
+        </div>
+      </div>
+
+      <!-- 流水线步骤（AI 模式专用） -->
+      <div class="pipeline-steps" id="pipelineSteps" style="display:flex;">
+        <div class="step active" id="step1"><span class="step-icon">🔍</span>选题</div>
+        <div class="step" id="step2"><span class="step-icon">✍️</span>写作</div>
+        <div class="step" id="step3"><span class="step-icon">🎨</span>排版</div>
+        <div class="step" id="step4"><span class="step-icon">🖼️</span>封面</div>
+        <div class="step" id="step5"><span class="step-icon">🚀</span>发布</div>
+      </div>
+
+      <div class="form-grid">
+        <!-- AI 全链路 专属输入 -->
+        <div class="form-group" id="groupKeyword">
+          <label>选题关键词</label>
+          <input type="text" id="keyword" value="荆州 文旅" placeholder="例如：荆州高考、荆州招商">
+        </div>
+        <div class="form-group" id="groupDays">
+          <label>搜索天数</label>
+          <select id="days">
+            <option value="3">最近 3 天</option>
+            <option value="7" selected>最近 7 天</option>
+            <option value="14">最近 14 天</option>
+            <option value="30">最近 30 天</option>
+          </select>
+        </div>
+
+        <!-- 文档导入 专属输入 -->
+        <div class="form-group" id="groupUpload" style="display:none;">
+          <label>上传文档</label>
+          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <div class="icon" id="uploadZoneIcon">📄</div>
+            <p id="uploadZoneText">点击上传或拖拽 .docx / .md / .txt</p>
+            <p class="hint" id="uploadHint">支持 Word 和 Markdown 文件</p>
+          </div>
+          <input type="file" id="fileInput" accept=".docx,.md,.txt" onchange="handleFileSelect(this)" style="display:none;">
+        </div>
+        <div class="form-group" id="groupUploadTitle" style="display:none;">
+          <label>文章标题（可选）</label>
+          <input type="text" id="uploadTitle" placeholder="留空自动从内容提取">
+        </div>
+
+        <!-- 共享模板选择 -->
+        <div class="form-group">
+          <div class="gallery-label-row">
+            <label>排版模板</label>
+            <button class="gallery-btn" onclick="openGallery()">📋 预览效果</button>
+          </div>
+          <select id="template_id">
+            <option value="journal">📰 晨报头版（朝鉴风格）</option>
+            <option value="magazine">📖 杂志封面</option>
+            <option value="cards">🃏 卡片瀑布流</option>
+            <option value="dashboard">📊 数据仪表盘</option>
+            <option value="minimal">✦ 极简留白</option>
+            <option value="chat">💬 对话气泡</option>
+            <option value="terminal">💻 终端界面（棱镜风格）</option>
+            <option value="editor">⌨️ 代码编辑器</option>
+            <option value="neon">🌆 霓虹赛博</option>
+            <option value="glass">🔮 毛玻璃卡片</option>
+            <option value="geek">🧪 极客简约</option>
+            <option value="hologram">🔮 全息投影</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>公众号</label>
+          <select id="account_id">
+            <option value="yinshuju">银枢局</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 操作按钮行 -->
+      <div class="btn-row" id="actionButtons">
+        <button class="btn-primary" id="btnRun" onclick="runPipeline()">▶ 一键运行全链路</button>
+        <button class="btn-secondary" onclick="clearLog()">🗑️ 清空</button>
+        <!-- 次级操作：仅 AI 全链路模式显示 -->
+        <div id="actionButtonsSecondary" style="display:flex;gap:8px;margin-left:4px;">
+          <button class="btn-outline" onclick="runStep('research')">🔍 只搜选题</button>
+          <button class="btn-outline" onclick="runStep('format')">🎨 只排版</button>
+        </div>
+      </div>
+
+      <!-- AI 模式选题结果 -->
+      <div class="topics-grid" id="topicsGrid" style="display:none;"></div>
+
+      <!-- 文档导入预览 -->
+      <div id="uploadPreview" style="display:none;">
+        <div style="margin-top:16px;">
+          <label>解析预览</label>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;color:var(--text-muted);max-height:200px;overflow-y:auto;line-height:1.6;" id="uploadPreviewContent"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <div class="card-title">📋 执行日志</div>
+    <div class="log-area" id="logArea">
+      <div class="log-line info"><span class="ts">[等待中]</span> 点击「一键运行」开始</div>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="card" id="previewCard" style="display:none;">
+    <div class="card-title">
+      📄 预览
+      <button class="btn-secondary" onclick="openInWechat()" style="margin-left:auto;">🚀 去公众号后台发布</button>
+    </div>
+    <iframe class="preview-frame" id="previewFrame"></iframe>
+  </div>
+
+</div>
+
+<footer>
+  PenPulse · AI 内容自动化平台 · © 2026 · <a href="https://inzu.com.cn" style="color:#6366f1;text-decoration:none;">inzu.com.cn</a>
+</footer>
+
+<!-- Template Gallery Modal -->
+<div class="gallery-modal" id="galleryModal" onclick="if(event.target===this)closeGallery()">
+  <div class="gallery-panel">
+    <div class="gallery-header">
+      <h2>🎨 模板预览</h2>
+      <button class="gallery-close" onclick="closeGallery()">✕</button>
+    </div>
+    <div class="gallery-tabs">
+      <button class="gallery-tab active" id="tabZhaojian" onclick="switchTab('zhaojian')">📰 朝鉴风格（12套）</button>
+      <button class="gallery-tab" id="tabLengjing" onclick="switchTab('lengjing')">💻 棱镜风格（12套）</button>
+    </div>
+    <div class="gallery-body">
+      <div class="gallery-grid-wrap">
+        <div class="gallery-grid" id="galleryGrid"></div>
+      </div>
+      <div class="gallery-preview">
+        <div class="gallery-preview-header">
+          <span class="gallery-preview-title" id="galleryPreviewTitle">选择模板查看效果</span>
+          <button class="gallery-use-btn" id="galleryUseBtn" onclick="useSelectedTemplate()" disabled>✓ 使用此模板</button>
+        </div>
+        <div class="gallery-iframe-wrap">
+          <div class="gallery-empty" id="galleryEmpty">← 请从左侧选择模板</div>
+          <iframe class="gallery-iframe" id="galleryIframe" style="display:none;"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" style="display:none;"></div>
+
+<script>
+const API_BASE = '/api';
+let state = { draft_id: '', preview_url: '', html: '', uploadContent: '' };
+
+function log(msg, type) {
+  const el = document.getElementById('logArea');
+  const ts = new Date().toLocaleTimeString('zh-CN', {hour12:false});
+  const div = document.createElement('div');
+  div.className = 'log-line ' + (type || '');
+  div.innerHTML = '<span class="ts">[' + ts + ']</span> ' + msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setStep(n, cls) {
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('step' + i);
+    if (i < n) el.className = 'step done';
+    else if (i === n) el.className = 'step ' + (cls || 'active');
+    else el.className = 'step';
+  }
+}
+
+function showToast(msg, type) {
+  type = type || 'ok';
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 3000);
+}
+
+function clearLog() {
+  document.getElementById('logArea').innerHTML = '<div class="log-line info"><span class="ts">[空闲]</span> 日志已清空</div>';
+}
+
+function switchMainTab(tab) {
+  // Toggle mode buttons
+  document.getElementById('modeBtnPipeline').classList.toggle('active', tab === 'pipeline');
+  document.getElementById('modeBtnUpload').classList.toggle('active', tab === 'upload');
+  // Show/hide pipeline steps
+  document.getElementById('pipelineSteps').style.display = (tab === 'pipeline') ? '' : 'none';
+  // Show/hide AI-mode fields
+  document.getElementById('groupKeyword').style.display = (tab === 'pipeline') ? '' : 'none';
+  document.getElementById('groupDays').style.display = (tab === 'pipeline') ? '' : 'none';
+  document.getElementById('groupUpload').style.display = (tab === 'upload') ? '' : 'none';
+  document.getElementById('groupUploadTitle').style.display = (tab === 'upload') ? '' : 'none';
+  // Show/hide pipeline-only secondary actions
+  document.getElementById('actionButtonsSecondary').style.display = (tab === 'pipeline') ? '' : 'none';
+  // Switch primary action button
+  if (tab === 'pipeline') {
+    document.getElementById('btnRun').textContent = '▶ 一键运行全链路';
+    document.getElementById('btnRun').onclick = runPipeline;
+    document.getElementById('btnRun').id = 'btnRun';
+  } else {
+    document.getElementById('btnRun').textContent = '⚡ 解析 → 排版 → 发布';
+    document.getElementById('btnRun').onclick = uploadAndProcess;
+    document.getElementById('btnRun').id = 'btnRun';
+  }
+}
+
+async function callAPI(action, params) {
+  const resp = await fetch(API_BASE, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ action: action, ...params })
+  });
+  return resp.json();
+}
+
+async function runStep(step) {
+  if (step === 'research') {
+    log('🔍 搜索选题...');
+    setStep(1, 'active');
+    const r = await callAPI('research', {
+      keyword: document.getElementById('keyword').value,
+      days: parseInt(document.getElementById('days').value)
+    });
+    if (r.status === 'ok') {
+      log('✅ 找到 ' + r.topics.length + ' 条选题', 'ok');
+      r.topics.slice(0,6).forEach(function(t) { log('  · ' + t.title + '  [' + t.source + ' / ' + t.tag + ']'); });
+      setStep(1, 'done');
+    } else {
+      log('❌ ' + (r.message || '搜索失败'), 'error');
+    }
+  } else if (step === 'format') {
+    log('🎨 排版中...');
+    setStep(3, 'active');
+    const r = await callAPI('format', {
+      markdown: '# 测试标题\\n\\n正文内容',
+      template_id: document.getElementById('template_id').value
+    });
+    if (r.status === 'ok') {
+      log('✅ 排版完成 (' + r.html_length + ' 字符)', 'ok');
+      state.html = r.html;
+      setStep(3, 'done');
+      showPreview(r.html);
+    } else {
+      log('❌ 排版失败: ' + r.message, 'error');
+    }
+  }
+}
+
+async function runPipeline() {
+  const btn = document.getElementById('btnRun');
+  btn.disabled = true;
+  btn.textContent = '⏳ 运行中...';
+  clearLog();
+  state = { draft_id: '', preview_url: '', html: '', uploadContent: '' };
+  document.getElementById('previewCard').style.display = 'none';
+  document.getElementById('topicsGrid').style.display = 'none';
+
+  try {
+    log('🚀 启动全链路...');
+    setStep(1, 'active');
+
+    const r = await callAPI('pipeline', {
+      keyword: document.getElementById('keyword').value,
+      days: parseInt(document.getElementById('days').value),
+      template_id: document.getElementById('template_id').value,
+      account_id: document.getElementById('account_id').value
+    });
+
+    if (r.status === 'ok') {
+      setStep(1, 'done');
+      setStep(2, 'done');
+      setStep(3, 'done');
+      setStep(4, 'done');
+      setStep(5, 'done');
+      state.draft_id = r.draft_id || '';
+      state.preview_url = r.preview_url || '';
+      log('✅ 选题：「' + r.topic + '」', 'ok');
+      log('📝 草稿已推送至公众号后台 [' + r.html_length + ' 字符]', 'ok');
+      if (r.preview_url) log('🔗 预览链接：' + r.preview_url);
+      log('🎉 全链路执行完成！请在公众号后台审核发布', 'ok');
+      showToast('草稿已推送，请去公众号后台审核发布', 'ok');
+      if (r.preview_url) {
+        setTimeout(function() { window.open(r.preview_url, '_blank'); }, 1500);
+      }
+    } else {
+      log('❌ 失败: ' + (r.message || JSON.stringify(r)), 'error');
+      showToast('执行失败: ' + (r.message || '未知错误'), 'error');
+    }
+  } catch(e) {
+    log('❌ 网络错误: ' + e.message, 'error');
+    showToast('网络错误', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ 一键运行全链路';
+  }
+}
+
+function showPreview(html) {
+  const card = document.getElementById('previewCard');
+  const frame = document.getElementById('previewFrame');
+  card.style.display = 'block';
+  frame.srcdoc = '<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{padding:20px;max-width:750px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif}.preview-watermark{position:fixed;bottom:10px;right:10px;font-size:11px;color:#ccc;pointer-events:none}</style></head><body>' + html + '<div class=preview-watermark>PenPulse 预览</div></body></html>';
+}
+
+function openInWechat() {
+  if (state.preview_url) window.open(state.preview_url, '_blank');
+  else window.open('https://mp.weixin.qq.com', '_blank');
+}
+
+// File Upload
+function handleFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const raw = e.target.result;
+    // ArrayBuffer (docx) -> decode to text
+    if (raw instanceof ArrayBuffer) {
+      const decoder = new TextDecoder('utf-8');
+      state.uploadContent = decoder.decode(raw);
+    } else {
+      state.uploadContent = raw;
+    }
+    const isDocx = file.name.toLowerCase().endsWith('.docx');
+    log('📄 已加载: ' + file.name + ' (' + Math.round(file.size/1024) + 'KB)' + (isDocx ? '，docx 将由服务器解析' : ''), 'ok');
+    // Update upload zone to show success state
+    const zoneIcon = document.getElementById('uploadZoneIcon') || document.querySelector('#uploadZone .icon');
+    const zoneText = document.getElementById('uploadZoneText') || document.querySelector('#uploadZone p:not(.hint)');
+    const zoneHint = document.getElementById('uploadHint') || document.querySelector('#uploadZone .hint');
+    if (zoneIcon) zoneIcon.textContent = '✅';
+    if (zoneText) zoneText.textContent = file.name;
+    if (zoneHint) zoneHint.textContent = '点击可重新选择文件';
+    document.getElementById('uploadPreview').style.display = 'block';
+    if (isDocx) {
+      var previewEl = document.getElementById('uploadPreviewContent');
+      previewEl.innerHTML = '<span style="color:var(--primary);font-size:13px;line-height:1.8;">✅ 文件已就绪，将在服务器端解析为可读文本</span>';
+    } else {
+      var previewText = state.uploadContent.substring(0, 500);
+      if (state.uploadContent.length > 500) {
+        previewText = previewText + '\x0a\x0a[...]（后续内容将在服务器端处理）';
+      }
+      document.getElementById('uploadPreviewContent').textContent = previewText;
+    }
+  };
+  
+  reader.readAsArrayBuffer(file);
+}
+
+function previewUpload() {
+  if (!state.uploadContent) {
+    showToast('请先选择文件', 'error');
+    return;
+  }
+  document.getElementById('uploadPreview').style.display = 'block';
+  var previewText2 = state.uploadContent.substring(0, 1000);
+  if (state.uploadContent.length > 1000) previewText2 = previewText2 + '\x0a\x0a[...]（后续内容将在服务器端处理）';
+  document.getElementById('uploadPreviewContent').textContent = previewText2;
+}
+
+async function uploadAndProcess() {
+  if (!state.uploadContent) {
+    showToast('请先选择文件', 'error');
+    return;
+  }
+  
+  clearLog();
+  log('📤 开始处理上传的文档...');
+  
+  try {
+    const r = await callAPI('upload', {
+      content: state.uploadContent,
+      title: document.getElementById('uploadTitle').value,
+      template_id: document.getElementById('template_id').value,
+      account_id: document.getElementById('account_id').value
+    });
+    
+    if (r.status === 'ok') {
+      log('✅ 文档处理完成', 'ok');
+      log('📝 草稿已推送至公众号后台', 'ok');
+      if (r.preview_url) log('🔗 预览链接：' + r.preview_url);
+      showToast('文档处理完成！', 'ok');
+      state.preview_url = r.preview_url;
+      if (r.html) showPreview(r.html);
+    } else {
+      log('❌ 处理失败: ' + r.message, 'error');
+      showToast('处理失败', 'error');
+    }
+  } catch(e) {
+    log('❌ 网络错误: ' + e.message, 'error');
+    showToast('网络错误', 'error');
+  }
+}
+
+// Drag and drop
+const uploadZone = document.getElementById('uploadZone');
+if (uploadZone) {
+  uploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadZone.classList.add('dragover');
+  });
+  uploadZone.addEventListener('dragleave', function() {
+    uploadZone.classList.remove('dragover');
+  });
+  uploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      document.getElementById('fileInput').files = files;
+      handleFileSelect(document.getElementById('fileInput'));
+    }
+  });
+}
+
+// Template Gallery
+const TEMPLATES = {
+  zhaojian: [
+    { id: 'journal',      file: 'zhaojian-001-editorial.html',    icon: '📰', name: '编辑部视角',   desc: '经典报纸感，首选' },
+    { id: 'magazine',     file: 'zhaojian-002-magazine.html',     icon: '📖', name: '杂志封面',     desc: '大图大字，视觉冲击' },
+    { id: 'cards',        file: 'zhaojian-003-cards.html',        icon: '🃏', name: '卡片瀑布流',   desc: '多模块并列展示' },
+    { id: 'dashboard',    file: 'zhaojian-004-dashboard.html',    icon: '📊', name: '数据仪表盘',   desc: '数据密集型展示' },
+    { id: 'minimal',      file: 'zhaojian-005-minimal.html',      icon: '✦',  name: '极简留白',     desc: '呼吸感，观点驱动' },
+    { id: 'chat',         file: 'zhaojian-006-chat.html',         icon: '💬', name: '对话气泡',     desc: '轻松聊天风格' },
+    { id: 'interview',    file: 'zhaojian-007-interview.html',    icon: '🎙', name: '访谈体',       desc: '问答场景还原' },
+    { id: 'city-compare', file: 'zhaojian-008-city-compare.html', icon: '🏙', name: '城市对比',     desc: '区域横向比较' },
+    { id: 'report',       file: 'zhaojian-009-report.html',       icon: '📋', name: '报告体',       desc: '正式严谨，调研风' },
+    { id: 'story',        file: 'zhaojian-010-story.html',        icon: '📖', name: '故事体',       desc: '叙事驱动，情感共鸣' },
+    { id: 'brief',        file: 'zhaojian-011-brief.html',        icon: '📰', name: '朝鉴简报',     desc: '信息密集，简短直接' },
+    { id: 'emotion',      file: 'zhaojian-012-emotion.html',      icon: '💡', name: '观点洞察',     desc: '反常识，犀利金句' },
+  ],
+  lengjing: [
+    { id: 'terminal',     file: 'prism-001-terminal.html',        icon: '💻', name: '终端界面',     desc: '代码/教程首选' },
+    { id: 'editor',       file: 'prism-002-code-editor.html',     icon: '⌨️', name: '代码编辑器',   desc: 'VS Code 暗色风格' },
+    { id: 'neon',         file: 'prism-003-neon.html',            icon: '🌆', name: '霓虹赛博',     desc: '紫青光效，酷炫' },
+    { id: 'glass',        file: 'prism-004-frosted.html',         icon: '🔮', name: '毛玻璃卡片',   desc: 'iOS 毛玻璃风格' },
+    { id: 'geek',         file: 'prism-005-geek-minimal.html',    icon: '⚡', name: '极客简约',     desc: '纯黑底白字，深度概念' },
+    { id: 'hologram',     file: 'prism-006-hologram.html',        icon: '🔮', name: '全息投影',     desc: '科幻 HUD 风格' },
+    { id: 'api-doc',      file: 'prism-007-api-doc.html',         icon: '📐', name: 'API 文档',     desc: '技术规范说明' },
+    { id: 'github',       file: 'prism-008-github.html',          icon: '🐙', name: 'GitHub 风格',  desc: '开发者工具展示' },
+    { id: 'paper',        file: 'prism-009-paper.html',           icon: '📄', name: '论文风',       desc: '学术研究风格' },
+    { id: 'trend',        file: 'prism-010-trend.html',           icon: '📈', name: '趋势分析',     desc: '市场/行业趋势' },
+    { id: 'product',      file: 'prism-011-product.html',         icon: '🎯', name: '产品拆解',     desc: '产品分析竞品对比' },
+    { id: 'career',       file: 'prism-012-career.html',          icon: '💼', name: '职业发展',     desc: '技术成长建议' },
+  ]
+};
+
+let galleryTab = 'zhaojian';
+let gallerySelected = null;
+
+function openGallery() {
+  galleryTab = 'zhaojian';
+  gallerySelected = null;
+  document.getElementById('galleryModal').classList.add('open');
+  document.getElementById('tabZhaojian').classList.add('active');
+  document.getElementById('tabLengjing').classList.remove('active');
+  document.getElementById('galleryUseBtn').disabled = true;
+  document.getElementById('galleryEmpty').style.display = 'flex';
+  document.getElementById('galleryIframe').style.display = 'none';
+  document.getElementById('galleryPreviewTitle').innerHTML = '选择模板查看效果';
+  renderGrid('zhaojian');
+  bindGalleryGrid();
+}
+
+function closeGallery() {
+  document.getElementById('galleryModal').classList.remove('open');
+}
+
+function switchTab(tab) {
+  galleryTab = tab;
+  gallerySelected = null;
+  document.getElementById('tabZhaojian').classList.toggle('active', tab === 'zhaojian');
+  document.getElementById('tabLengjing').classList.toggle('active', tab === 'lengjing');
+  document.getElementById('galleryUseBtn').disabled = true;
+  document.getElementById('galleryEmpty').style.display = 'flex';
+  document.getElementById('galleryIframe').style.display = 'none';
+  document.getElementById('galleryPreviewTitle').innerHTML = '选择模板查看效果';
+  renderGrid(tab);
+}
+
+function renderGrid(tab) {
+  const grid = document.getElementById('galleryGrid');
+  const templates = TEMPLATES[tab];
+  grid.innerHTML = templates.map(function(t) {
+    return '<div class="gallery-card" id="card-' + t.id + '" data-id="' + t.id + '">' +
+      '<div class="gallery-card-num">' + t.file.split('-')[1] + '</div>' +
+      '<div class="gallery-card-icon">' + t.icon + '</div>' +
+      '<div class="gallery-card-name">' + t.name + '</div>' +
+      '<div class="gallery-card-desc">' + t.desc + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function bindGalleryGrid() {
+  const grid = document.getElementById('galleryGrid');
+  if (grid && !grid.dataset.bound) {
+    grid.addEventListener('click', function(e) {
+      const card = e.target.closest('.gallery-card');
+      if (card) selectTemplate(card.getAttribute('data-id'));
+    });
+    grid.dataset.bound = '1';
+  }
+}
+
+function selectTemplate(id) {
+  gallerySelected = id;
+  const templates = TEMPLATES[galleryTab];
+  const tpl = templates.find(function(t) { return t.id === id; });
+  if (!tpl) return;
+
+  document.querySelectorAll('.gallery-card').forEach(function(c) { c.classList.remove('selected'); });
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.add('selected');
+
+  const iframe = document.getElementById('galleryIframe');
+  const empty = document.getElementById('galleryEmpty');
+  const title = document.getElementById('galleryPreviewTitle');
+  const useBtn = document.getElementById('galleryUseBtn');
+
+  empty.style.display = 'none';
+  iframe.style.display = 'block';
+  iframe.src = '/previews/' + tpl.file;
+  title.innerHTML = '<strong>' + tpl.icon + ' ' + tpl.name + '</strong> · ' + tpl.desc;
+  useBtn.disabled = false;
+}
+
+function useSelectedTemplate() {
+  if (!gallerySelected) return;
+  const sel = document.getElementById('template_id');
+  sel.value = gallerySelected;
+  closeGallery();
+  showToast('已切换到「' + gallerySelected + '」模板', 'ok');
+}
+</script>
+</body>
+</html>
