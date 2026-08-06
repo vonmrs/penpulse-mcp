@@ -339,6 +339,65 @@ const _htmlTemplate = () => {
   /* Tab panels */
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
+
+  /* Mode Switcher — pill toggle */
+  .mode-switcher {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 20px;
+    background: var(--surface);
+    padding: 3px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .mode-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 20px;
+    border: none;
+    border-radius: 9px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .mode-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .mode-btn.active {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(99,102,241,0.4);
+  }
+  .mode-icon { font-size: 15px; }
+  #pipelineSteps {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 6px;
+    border: 1px solid var(--border);
+  }
+
+  /* Outline buttons */
+  .btn-outline {
+    background: transparent;
+    color: var(--text-muted);
+    font-weight: 500;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: rgba(99,102,241,0.06); }
 </style>
 </head>
 <body>
@@ -370,7 +429,7 @@ const _htmlTemplate = () => {
       </div>
 
       <!-- 流水线步骤（AI 模式专用） -->
-      <div class="pipeline-steps" id="pipelineSteps">
+      <div class="pipeline-steps" id="pipelineSteps" style="display:flex;">
         <div class="step active" id="step1"><span class="step-icon">🔍</span>选题</div>
         <div class="step" id="step2"><span class="step-icon">✍️</span>写作</div>
         <div class="step" id="step3"><span class="step-icon">🎨</span>排版</div>
@@ -398,8 +457,8 @@ const _htmlTemplate = () => {
         <div class="form-group" id="groupUpload" style="display:none;">
           <label>上传文档</label>
           <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-            <div class="icon">📄</div>
-            <p>点击上传或拖拽 .docx / .md / .txt</p>
+            <div class="icon" id="uploadZoneIcon">📄</div>
+            <p id="uploadZoneText">点击上传或拖拽 .docx / .md / .txt</p>
             <p class="hint" id="uploadHint">支持 Word 和 Markdown 文件</p>
           </div>
           <input type="file" id="fileInput" accept=".docx,.md,.txt" onchange="handleFileSelect(this)" style="display:none;">
@@ -438,12 +497,15 @@ const _htmlTemplate = () => {
         </div>
       </div>
 
-      <!-- 共享操作按钮 -->
+      <!-- 操作按钮行 -->
       <div class="btn-row" id="actionButtons">
         <button class="btn-primary" id="btnRun" onclick="runPipeline()">▶ 一键运行全链路</button>
-        <button class="btn-secondary" onclick="runStep('research')">🔍 只搜选题</button>
-        <button class="btn-secondary" onclick="runStep('format')">🎨 只排版</button>
         <button class="btn-secondary" onclick="clearLog()">🗑️ 清空</button>
+        <!-- 次级操作：仅 AI 全链路模式显示 -->
+        <div id="actionButtonsSecondary" style="display:flex;gap:8px;margin-left:4px;">
+          <button class="btn-outline" onclick="runStep('research')">🔍 只搜选题</button>
+          <button class="btn-outline" onclick="runStep('format')">🎨 只排版</button>
+        </div>
       </div>
 
       <!-- AI 模式选题结果 -->
@@ -560,7 +622,9 @@ function switchMainTab(tab) {
   document.getElementById('groupDays').style.display = (tab === 'pipeline') ? '' : 'none';
   document.getElementById('groupUpload').style.display = (tab === 'upload') ? '' : 'none';
   document.getElementById('groupUploadTitle').style.display = (tab === 'upload') ? '' : 'none';
-  // Switch action buttons
+  // Show/hide pipeline-only secondary actions
+  document.getElementById('actionButtonsSecondary').style.display = (tab === 'pipeline') ? '' : 'none';
+  // Switch primary action button
   if (tab === 'pipeline') {
     document.getElementById('btnRun').textContent = '▶ 一键运行全链路';
     document.getElementById('btnRun').onclick = runPipeline;
@@ -690,12 +754,23 @@ function handleFileSelect(input) {
     } else {
       state.uploadContent = raw;
     }
-    log('📄 已加载文件: ' + file.name + ' (' + Math.round(file.size/1024) + 'KB)', 'ok');
+    const isDocx = file.name.toLowerCase().endsWith('.docx');
+    log('📄 已加载: ' + file.name + ' (' + Math.round(file.size/1024) + 'KB)' + (isDocx ? '，docx 将由服务器解析' : ''), 'ok');
+    // Update upload zone to show success state
+    const zoneIcon = document.getElementById('uploadZoneIcon') || document.querySelector('#uploadZone .icon');
+    const zoneText = document.getElementById('uploadZoneText') || document.querySelector('#uploadZone p:not(.hint)');
+    const zoneHint = document.getElementById('uploadHint') || document.querySelector('#uploadZone .hint');
+    if (zoneIcon) zoneIcon.textContent = '✅';
+    if (zoneText) zoneText.textContent = file.name;
+    if (zoneHint) zoneHint.textContent = '点击可重新选择文件';
     document.getElementById('uploadPreview').style.display = 'block';
-    document.getElementById('uploadPreviewContent').textContent = state.uploadContent.substring(0, 500) + (state.uploadContent.length > 500 ? '...' : '');
+    if (isDocx) {
+      document.getElementById('uploadPreviewContent').innerHTML = '<span style="color:var(--primary);font-size:13px;line-height:1.8;">✅ 文件已就绪，将在服务器端解析为可读文本</span>';
+    } else {
+      document.getElementById('uploadPreviewContent').textContent = state.uploadContent.substring(0, 500) + (state.uploadContent.length > 500 ? '\n\n[...]（后续内容将在服务器端处理）' : '');
+    }
   };
   
-  // All files: read as text directly (TextDecoder handles encoding)
   reader.readAsArrayBuffer(file);
 }
 
@@ -902,7 +977,7 @@ async function handleHome(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  res.setHeader('X-Build-Version', '20250806-06-layout-fix');
+  res.setHeader('X-Build-Version', '20250806-07-uix');
   return res.status(200).send(_htmlTemplate());
 }
 
