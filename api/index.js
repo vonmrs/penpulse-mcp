@@ -1,438 +1,762 @@
 // 不缓存，每次调用实时生成（避免 Serverless 冷启动缓存旧版本）
 const _htmlTemplate = () => {
-  const FRONTEND_HTML = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PenPulse · 笔脉</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PenPulse · AI 内容自动化</title>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:#0d1117; color:#c9d1d9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif; min-height:100vh; }
-.container { max-width:1200px; margin:0 auto; padding:20px; }
-header { text-align:center; padding:30px 0 20px; }
-header h1 { font-size:28px; background:linear-gradient(135deg,#58a6ff,#bc8cff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-header p { color:#8b949e; font-size:14px; margin-top:6px; }
-.card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:24px; margin-bottom:20px; }
-.card h2 { font-size:16px; color:#f0f6fc; margin-bottom:16px; font-weight:600; }
-.card label { display:block; font-size:13px; color:#8b949e; margin-bottom:4px; }
-.card input,.card select,.card textarea { width:100%; padding:8px 12px; background:#0d1117; border:1px solid #30363d; border-radius:6px; color:#c9d1d9; font-size:14px; outline:none; transition:border-color .2s; }
-.card input:focus,.card select:focus { border-color:#58a6ff; }
-.card button { padding:8px 24px; background:#238636; border:none; border-radius:6px; color:#fff; font-size:14px; cursor:pointer; transition:background .2s; font-weight:500; }
-.card button:hover { background:#2ea043; }
-.card button:disabled { background:#1b4721; cursor:not-allowed; }
-.row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
-@media(max-width:640px){.row{grid-template-columns:1fr;}}
-#log { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:12px; font-size:12px; font-family:'JetBrains Mono','SF Mono','Menlo',monospace; height:200px; overflow-y:auto; line-height:1.6; margin-top:12px; }
-.log-line { padding:2px 0; }
-.log-ok { color:#3fb950; }
-.log-error { color:#f85149; }
-.log-warn { color:#d29922; }
-.log-info { color:#8b949e; }
-.steps { display:flex; gap:4px; margin-bottom:12px; }
-.step { flex:1; padding:6px; text-align:center; font-size:11px; border-radius:6px; background:#21262d; color:#484f58; transition:all .3s; }
-.step.active { background:#1f6feb33; color:#58a6ff; border:1px solid #1f6feb; }
-.step.done { background:#23863633; color:#3fb950; border:1px solid #238636; }
-#topics { margin-top:12px; }
-.tab-bar { display:flex; gap:0; margin-bottom:20px; border-bottom:2px solid #21262d; }
-.tab-btn { flex:1; padding:12px 16px; text-align:center; font-size:14px; cursor:pointer; background:transparent; border:none; color:#8b949e; font-weight:500; transition:all .2s; position:relative; }
-.tab-btn:hover { color:#c9d1d9; background:#161b2211; }
-.tab-btn.active { color:#f0f6fc; }
-.tab-btn.active::after { content:''; position:absolute; bottom:-2px; left:0; right:0; height:2px; background:#58a6ff; border-radius:1px; }
-.tab-content { display:none; }
-.tab-content.active { display:block; }
-.upload-zone { border:2px dashed #30363d; border-radius:12px; padding:40px; text-align:center; cursor:pointer; transition:all .2s; margin-bottom:16px; }
-.upload-zone:hover { border-color:#58a6ff; background:#161b2233; }
-.upload-zone.dragover { border-color:#3fb950; background:#23863611; }
-.upload-zone p { color:#8b949e; font-size:14px; margin-top:8px; }
-.upload-zone .icon { font-size:36px; }
-#parsePreview { white-space:pre-wrap; word-break:break-all; }
-#log2 { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:12px; font-size:12px; font-family:'JetBrains Mono','SF Mono','Menlo',monospace; height:150px; overflow-y:auto; line-height:1.6; }
-footer { text-align:center; padding:20px; color:#484f58; font-size:12px; }
-footer a { color:#58a6ff; text-decoration:none; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --border: #1f2937;
+    --primary: #6366f1;
+    --primary-hover: #818cf8;
+    --accent: #22d3ee;
+    --text: #f9fafb;
+    --text-muted: #9ca3af;
+    --success: #10b981;
+    --error: #ef4444;
+    --warning: #f59e0b;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(99,102,241,0.15);
+    color: var(--primary-hover);
+    border: 1px solid rgba(99,102,241,0.3);
+  }
+
+  /* Main Layout */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .subtitle { color: var(--text-muted); margin-bottom: 32px; }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Form Grid */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  label { font-size: 13px; color: var(--text-muted); }
+  input, select, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--primary);
+  }
+  textarea { resize: vertical; min-height: 100px; }
+
+  .full { grid-column: 1 / -1; }
+
+  /* Buttons */
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary), #4f46e5);
+    color: #fff;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--primary); color: var(--primary-hover); }
+
+  .btn-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+  /* Status / Log */
+  .log-area {
+    background: #080d17;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    max-height: 420px;
+    overflow-y: auto;
+    margin-top: 16px;
+  }
+  .log-line { display: flex; gap: 10px; color: var(--text-muted); }
+  .log-line.ok { color: var(--success); }
+  .log-line.error { color: var(--error); }
+  .log-line.info { color: var(--accent); }
+  .log-line .ts { color: #4b5563; min-width: 55px; }
+
+  /* Topic Cards */
+  .topics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .topic-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .topic-card:hover { border-color: var(--primary); background: rgba(99,102,241,0.05); }
+  .topic-card .title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .topic-card .meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 10px; }
+  .topic-card .tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    background: rgba(99,102,241,0.15);
+    color: var(--primary-hover);
+  }
+
+  /* Preview */
+  .preview-frame {
+    width: 100%;
+    height: 500px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    color: #333;
+    margin-top: 16px;
+  }
+
+  /* Pipeline Steps */
+  .pipeline-steps {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .step {
+    text-align: center;
+    padding: 10px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    transition: all 0.3s;
+  }
+  .step.active { border-color: var(--primary); color: var(--primary-hover); background: rgba(99,102,241,0.08); }
+  .step.done { border-color: var(--success); color: var(--success); background: rgba(16,185,129,0.08); }
+  .step-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    color: #4b5563;
+    font-size: 12px;
+    padding: 24px;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    transition: opacity 0.3s;
+  }
+  .toast.ok { background: var(--success); color: #fff; }
+  .toast.error { background: var(--error); color: #fff; }
+
+  @media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .pipeline-steps { grid-template-columns: repeat(5, 1fr); }
+  }
+
+  /* Template Gallery */
+  .gallery-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    background: rgba(99,102,241,0.15); color: #818cf8;
+    border: 1px solid rgba(99,102,241,0.3); cursor: pointer;
+    transition: all 0.2s; margin-left: 8px; white-space: nowrap;
+  }
+  .gallery-btn:hover { background: rgba(99,102,241,0.25); border-color: #6366f1; }
+  .gallery-label-row { display: flex; align-items: center; margin-bottom: 6px; }
+  .gallery-label-row label { margin-bottom: 0; }
+
+  .gallery-modal {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .gallery-modal.open { display: flex; }
+  .gallery-panel {
+    background: #111827; border: 1px solid #1f2937; border-radius: 16px;
+    width: 100%; max-width: 1100px; max-height: 90vh; display: flex;
+    flex-direction: column; overflow: hidden;
+  }
+  .gallery-header {
+    display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+    border-bottom: 1px solid #1f2937; flex-shrink: 0;
+  }
+  .gallery-header h2 { font-size: 16px; font-weight: 600; color: #f9fafb; margin: 0; flex: 1; }
+  .gallery-close {
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid #1f2937;
+    background: transparent; color: #9ca3af; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .gallery-close:hover { background: #1f2937; color: #fff; }
+  .gallery-tabs {
+    display: flex; gap: 8px; padding: 0 20px; border-bottom: 1px solid #1f2937;
+    flex-shrink: 0;
+  }
+  .gallery-tab {
+    padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
+    border: none; background: transparent; color: #6b7280;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+  .gallery-tab:hover { color: #9ca3af; }
+  .gallery-tab.active { color: #818cf8; border-bottom-color: #6366f1; }
+  .gallery-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+  .gallery-grid-wrap { width: 320px; flex-shrink: 0; overflow-y: auto; padding: 16px; border-right: 1px solid #1f2937; }
+  .gallery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .gallery-card {
+    background: #0a0e1a; border: 1.5px solid #1f2937; border-radius: 10px;
+    padding: 10px; cursor: pointer; transition: all 0.2s;
+  }
+  .gallery-card:hover { border-color: #6366f1; background: rgba(99,102,241,0.06); }
+  .gallery-card.selected { border-color: #6366f1; background: rgba(99,102,241,0.12); }
+  .gallery-card-num { font-size: 10px; color: #4b5563; margin-bottom: 4px; }
+  .gallery-card-icon { font-size: 20px; margin-bottom: 6px; }
+  .gallery-card-name { font-size: 12px; font-weight: 600; color: #e5e7eb; line-height: 1.3; margin-bottom: 3px; }
+  .gallery-card-desc { font-size: 10px; color: #6b7280; line-height: 1.3; }
+  .gallery-preview { flex: 1; padding: 16px; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+  .gallery-preview-header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .gallery-preview-title { font-size: 13px; color: #9ca3af; }
+  .gallery-preview-title strong { color: #818cf8; }
+  .gallery-use-btn {
+    padding: 7px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600;
+    background: #6366f1; color: #fff; cursor: pointer; transition: all 0.2s;
+  }
+  .gallery-use-btn:hover { background: #818cf8; }
+  .gallery-iframe-wrap { flex: 1; border: 1px solid #1f2937; border-radius: 10px; overflow: hidden; background: #fff; }
+  .gallery-iframe { width: 100%; height: 100%; border: none; display: block; }
+  .gallery-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: #4b5563; font-size: 14px; }
+  @media (max-width: 768px) {
+    .gallery-body { flex-direction: column; }
+    .gallery-grid-wrap { width: 100%; border-right: none; border-bottom: 1px solid #1f2937; max-height: 200px; }
+    .gallery-grid { grid-template-columns: repeat(4, 1fr); }
+    .gallery-panel { max-height: 95vh; }
+  }
 </style>
 </head>
 <body>
 
-<div class="container">
 <header>
-  <h1>⚡ PenPulse · 笔脉</h1>
-  <p>AI 内容自动化工作室 · 选题 → 写作 → 排版 → 封面 → 发布</p>
+  <span class="logo">PenPulse</span>
+  <span class="badge">AI 内容自动化</span>
 </header>
 
-<div class="tab-bar">
-  <button class="tab-btn active" id="tab1" onclick="switchTab(1)">🤖 链路一：AI全链路</button>
-  <button class="tab-btn" id="tab2" onclick="switchTab(2)">📄 链路二：文档导入</button>
-</div>
+<div class="container">
 
-<!-- 链路一：AI全链路 -->
-<div class="tab-content active" id="content1">
+  <div style="margin-bottom: 32px;">
+    <h1>一键生成公众号内容</h1>
+    <p class="subtitle">选题 · AI 写作 · 智能排版 · 封面生成 · 自动发布，全链路自动化</p>
+  </div>
+
   <div class="card">
-    <h2>🔍 第一步：选题搜索</h2>
-    <p style="font-size:13px;color:#8b949e;margin-bottom:12px;line-height:1.5">
-      输入关键词 → 搜索热门选题 → 点击选题自动填入 → <strong>运行全链路</strong>
-    </p>
-    <div class="row">
-      <div>
-        <label>关键词 <span style="color:#f85149">*</span></label>
-        <input type="text" id="keyword" placeholder="例如：荆州企业融资" value="">
+    <div class="pipeline-steps">
+      <div class="step active" id="step1"><span class="step-icon">🔍</span>选题</div>
+      <div class="step" id="step2"><span class="step-icon">✍️</span>写作</div>
+      <div class="step" id="step3"><span class="step-icon">🎨</span>排版</div>
+      <div class="step" id="step4"><span class="step-icon">🖼️</span>封面</div>
+      <div class="step" id="step5"><span class="step-icon">🚀</span>发布</div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>选题关键词</label>
+        <input type="text" id="keyword" value="荆州 文旅" placeholder="例如：荆州高考、荆州招商">
       </div>
-      <div>
-        <label>时间范围（天）</label>
-        <input type="number" id="days" value="7" min="1" max="90">
+      <div class="form-group">
+        <label>搜索天数</label>
+        <select id="days">
+          <option value="3">最近 3 天</option>
+          <option value="7" selected>最近 7 天</option>
+          <option value="14">最近 14 天</option>
+          <option value="30">最近 30 天</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="gallery-label-row">
+          <label>排版模板</label>
+          <button class="gallery-btn" onclick="openGallery()">📋 预览效果</button>
+        </div>
+        <select id="template_id">
+          <option value="journal">📰 晨报头版（朝鉴风格）</option>
+          <option value="magazine">📖 杂志封面</option>
+          <option value="cards">🃏 卡片瀑布流</option>
+          <option value="dashboard">📊 数据仪表盘</option>
+          <option value="minimal">✦ 极简留白</option>
+          <option value="chat">💬 对话气泡</option>
+          <option value="terminal">💻 终端界面（棱镜风格）</option>
+          <option value="editor">⌨️ 代码编辑器</option>
+          <option value="neon">🌆 霓虹赛博</option>
+          <option value="glass">🔮 毛玻璃卡片</option>
+          <option value="geek">🧪 极客简约</option>
+          <option value="hologram">🔮 全息投影</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>公众号</label>
+        <select id="account_id">
+          <option value="yinshuju">银枢局</option>
+        </select>
       </div>
     </div>
-    <div>
-      <label>文章研究方向（可选）</label>
-      <select id="direction">
-        <option value="">智能推荐</option>
-        <option value="industry">产业经济</option>
-        <option value="policy">政策分析</option>
-        <option value="tech">技术趋势</option>
-        <option value="finance">财经解读</option>
-      </select>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="btnRun" onclick="runPipeline()">▶ 一键运行全链路</button>
+      <button class="btn-secondary" onclick="runStep('research')">🔍 只搜选题</button>
+      <button class="btn-secondary" onclick="runStep('format')">🎨 只排版</button>
+      <button class="btn-secondary" onclick="clearLog()">🗑️ 清空日志</button>
     </div>
-    <div style="margin-top:12px">
-      <label>模板风格</label>
-      <select id="template_id">
-        <option value="">智能推荐</option>
-        <option value="editorial">001 评论头版</option>
-        <option value="magazine">002 杂志封面</option>
-        <option value="terminal">003 终端界面</option>
-        <option value="minimal">005 极简留白</option>
-        <option value="card">004 卡片瀑布</option>
-        <option value="hologram">006 全息投影</option>
-      </select>
-    </div>
-    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-      <button onclick="doSearch()">🔍 搜索选题</button>
-      <button onclick="doPipeline(event)" style="background:#1f6feb" id="runBtn">⚡ 运行全链路</button>
-    </div>
-    <div id="topics" style="margin-top:8px"></div>
+
+    <div class="topics-grid" id="topicsGrid" style="display:none;"></div>
   </div>
 
   <div class="card">
-    <h2>📋 进度</h2>
-    <div class="steps">
-      <div class="step" id="s1">1. 选题</div>
-      <div class="step" id="s2">2. 写作</div>
-      <div class="step" id="s3">3. 排版</div>
-      <div class="step" id="s4">4. 封面</div>
-      <div class="step" id="s5">5. 发布</div>
+    <div class="card-title">📋 执行日志</div>
+    <div class="log-area" id="logArea">
+      <div class="log-line info"><span class="ts">[等待中]</span> 点击「一键运行」开始</div>
     </div>
-    <div id="log"><div class="log-line log-info">就绪。</div></div>
   </div>
-</div>
 
-<!-- 链路二：文档导入 -->
-<div class="tab-content" id="content2">
-  <div class="card">
-    <h2>📤 上传文档</h2>
-    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-      <div class="icon">📄</div>
-      <p>点击上传或拖拽 .docx 文件</p>
-      <input type="file" id="fileInput" accept=".docx" style="display:none" onchange="handleFileSelect(this)">
+  <div class="card" id="previewCard" style="display:none;">
+    <div class="card-title">
+      📄 预览
+      <button class="btn-secondary" onclick="openInWechat()" style="margin-left:auto;">🚀 去公众号后台发布</button>
     </div>
-    <div style="margin-bottom:12px">
-      <label>文章标题（可选，留空自动从内容提取）</label>
-      <input type="text" id="docTitle" placeholder="输入标题…">
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button onclick="doDocPreview()">👁️ 预览解析</button>
-      <button onclick="doDocPipeline(event)" style="background:#1f6feb">⚡ 解析 → 排版 → 发布</button>
-    </div>
-    <div style="margin-top:12px">
-      <label>解析预览</label>
-      <div id="parsePreview" style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;font-size:12px;color:#c9d1d9;max-height:150px;overflow-y:auto;line-height:1.6;"></div>
-    </div>
-    <div style="margin-top:12px">
-      <label>运行日志</label>
-      <div id="log2"><div class="log-line log-info">就绪。</div></div>
-    </div>
+    <iframe class="preview-frame" id="previewFrame"></iframe>
   </div>
+
 </div>
 
 <footer>
-  Powered by <a href="https://github.com/vonmrs/penpulse-mcp" target="_blank">PenPulse</a> ·
-  <a href="https://inzu.com.cn" target="_blank">银枢局</a>
+  PenPulse · AI 内容自动化平台 · © 2026 · <a href="https://inzu.com.cn" style="color:#6366f1;text-decoration:none;">inzu.com.cn</a>
 </footer>
+
+<div class="gallery-modal" id="galleryModal" onclick="if(event.target===this)closeGallery()">
+  <div class="gallery-panel">
+    <div class="gallery-header">
+      <h2>🎨 模板预览</h2>
+      <button class="gallery-close" onclick="closeGallery()">✕</button>
+    </div>
+    <div class="gallery-tabs">
+      <button class="gallery-tab active" id="tabZhaojian" onclick="switchTab('zhaojian')">📰 朝鉴风格（12套）</button>
+      <button class="gallery-tab" id="tabLengjing" onclick="switchTab('lengjing')">💻 棱镜风格（12套）</button>
+    </div>
+    <div class="gallery-body">
+      <div class="gallery-grid-wrap">
+        <div class="gallery-grid" id="galleryGrid"></div>
+      </div>
+      <div class="gallery-preview">
+        <div class="gallery-preview-header">
+          <span class="gallery-preview-title" id="galleryPreviewTitle">选择模板查看效果</span>
+          <button class="gallery-use-btn" id="galleryUseBtn" onclick="useSelectedTemplate()" disabled>✓ 使用此模板</button>
+        </div>
+        <div class="gallery-iframe-wrap">
+          <div class="gallery-empty" id="galleryEmpty">← 请从左侧选择模板</div>
+          <iframe class="gallery-iframe" id="galleryIframe" style="display:none;"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
+<div class="toast" id="toast" style="display:none;"></div>
+
 <script>
-const API = '/api';
+const API_BASE = '/api';
 
-function log(msg, type='info') {
-  const el = document.getElementById('log');
-  const cls = type === 'ok' ? 'log-ok' : type === 'error' ? 'log-error' : type === 'warn' ? 'log-warn' : 'log-info';
-  el.innerHTML += '<div class="log-line '+cls+'">'+msg+'</div>';
+let state = { draft_id: '', preview_url: '', html: '' };
+
+function log(msg, type='') {
+  const el = document.getElementById('logArea');
+  const ts = new Date().toLocaleTimeString('zh-CN', {hour12:false});
+  const div = document.createElement('div');
+  div.className = 'log-line ' + type;
+  div.innerHTML = '<span class="ts">[' + ts + ']</span> ' + msg;
+  el.appendChild(div);
   el.scrollTop = el.scrollHeight;
 }
 
-function setStep(n, state) {
-  const el = document.getElementById('s'+n);
-  if (el) el.className = 'step '+(state || '');
+function setStep(n, cls) {
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('step' + i);
+    if (i < n) el.className = 'step done';
+    else if (i === n) el.className = 'step ' + (cls || 'active');
+    else el.className = 'step';
+  }
 }
 
-async function apiCall(action, body) {
-  const r = await fetch(API, {
+function showToast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+function clearLog() {
+  document.getElementById('logArea').innerHTML = '<div class="log-line info"><span class="ts">[空闲]</span> 日志已清空</div>';
+}
+
+async function callAPI(action, params) {
+  const resp = await fetch(API_BASE, {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({action, ...body}),
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ action, ...params })
   });
-  return r.json();
+  return resp.json();
 }
 
-async function doSearch() {
-  log('🔍 正在搜索选题…');
-  const kw = document.getElementById('keyword').value.trim();
-  const days = parseInt(document.getElementById('days').value) || 7;
-  try {
-    const d = await apiCall('research', {keyword: kw, days});
-    const el = document.getElementById('topics');
-    el.innerHTML = '';
-    (d.topics || []).slice(0,5).forEach(t => {
-      el.innerHTML += '<div style="padding:8px 0;border-bottom:1px solid #30363d;cursor:pointer" onclick="document.getElementById(\\'keyword\\').value=this.dataset.kw" data-kw="'+t.title+'"><div style="font-size:13px;color:#c9d1d9">'+t.title+'</div><div style="font-size:11px;color:#8b949e;margin-top:2px">'+t.source+' · '+t.tag+'</div></div>';
+async function runStep(step) {
+  if (step === 'research') {
+    log('🔍 搜索选题...');
+    setStep(1, 'active');
+    const r = await callAPI('research', {
+      keyword: document.getElementById('keyword').value,
+      days: parseInt(document.getElementById('days').value)
     });
-    log('✅ 找到 '+d.count+' 条选题', 'ok');
-  } catch(e) { log('❌ 搜索失败: '+e.message, 'error'); }
-}
-
-async function doPipeline(evt) {
-  const btn = (evt || event).target;
-  const kw = document.getElementById('keyword').value.trim();
-  const template = document.getElementById('template_id').value;
-
-  // ── Validate: keyword required ──
-  if (!kw) {
-    log('❌ 请先输入关键词', 'error');
-    document.getElementById('keyword').focus();
-    document.getElementById('keyword').style.borderColor = '#f85149';
-    setTimeout(() => document.getElementById('keyword').style.borderColor = '', 2000);
-    return;
-  }
-
-  btn.disabled = true; btn.textContent = '⚡ 运行中…';
-  for(let i=1;i<=5;i++) setStep(i,'');
-  log('🚀 全链路启动：关键词「'+kw+'」');
-  try {
-    setStep(1,'active'); log('→ 选题搜索中…');
-    const research = await apiCall('research', {keyword: kw});
-    setStep(1,'done');
-    setStep(2,'active'); log('→ AI 写作中（演示模式）…');
-    const md = '# '+kw+'\\n\\n> 这是演示内容。配置大模型 API Key 后会自动调用大模型生成真实文章。\\n\\n更多内容段落。';
-    setStep(2,'done');
-    setStep(3,'active'); log('→ 排版中…');
-    const formatted = await apiCall('format', {markdown: md, template: template || undefined});
-    setStep(3,'done');
-    setStep(4,'active'); log('→ 生成封面…');
-    setStep(4,'done');
-    setStep(5,'active'); log('→ 发布到微信公众号…');
-    const pub = await apiCall('publish', {html: formatted.html, title: formatted.title || kw, coverUrl: formatted.coverUrl || ''});
-    setStep(5,'done');
-    if (pub && pub.status === 'error') {
-      log('⚠️ 发布未完成: '+(pub.message || '发布模块需配置微信公众号 API Key')+'。可在本地环境完整运行。', 'warn');
-    } else if (pub && (pub.articleId || pub.media_id)) {
-      log('✅ 发布成功！草稿 ID: '+(pub.media_id || pub.articleId), 'ok');
+    if (r.status === 'ok') {
+      log('✅ 找到 ' + r.topics.length + ' 条选题', 'ok');
+      r.topics.slice(0,6).forEach(t => log('  · ' + t.title + '  [' + t.source + ' / ' + t.tag + ']'));
+      setStep(1, 'done');
     } else {
-      log('✅ 全链路模拟完成（演示模式，未真实发布）', 'ok');
+      log('❌ ' + (r.message || '搜索失败'), 'error');
     }
-  } catch(e) {
-    log('❌ 错误: '+e.message, 'error');
-  }
-  btn.disabled = false; btn.textContent = '⚡ 运行全链路';
-}
-
-// ── Tab 切换 ─────────────────────────────────────────────────
-function switchTab(n) {
-  console.log('switchTab(' + n + ') called');
-  try {
-    const tab1 = document.getElementById('tab1');
-    const tab2 = document.getElementById('tab2');
-    const c1 = document.getElementById('content1');
-    const c2 = document.getElementById('content2');
-    if (!tab1 || !tab2 || !c1 || !c2) {
-      console.error('switchTab: elements missing');
-      return;
+  } else if (step === 'format') {
+    log('🎨 排版中...');
+    setStep(3, 'active');
+    const r = await callAPI('format', {
+      markdown: '# 测试标题\\n\\n正文内容',
+      template_id: document.getElementById('template_id').value
+    });
+    if (r.status === 'ok') {
+      log('✅ 排版完成 (' + r.html_length + ' 字符)', 'ok');
+      state.html = r.html;
+      setStep(3, 'done');
+      showPreview(r.html);
+    } else {
+      log('❌ 排版失败: ' + r.message, 'error');
     }
-    tab1.className = 'tab-btn' + (n === 1 ? ' active' : '');
-    tab2.className = 'tab-btn' + (n === 2 ? ' active' : '');
-    c1.style.display = n === 1 ? 'block' : 'none';
-    c2.style.display = n === 2 ? 'block' : 'none';
-    console.log('switchTab(' + n + ') done. c1.display:', c1.style.display, 'c2.display:', c2.style.display);
-  } catch(e) {
-    console.error('switchTab error:', e);
   }
 }
 
-// ── 文件选择 ─────────────────────────────────────────────────
-let uploadedFileBase64 = null;
+async function runPipeline() {
+  const btn = document.getElementById('btnRun');
+  btn.disabled = true;
+  btn.textContent = '⏳ 运行中...';
+  clearLog();
+  state = { draft_id: '', preview_url: '', html: '' };
+  document.getElementById('previewCard').style.display = 'none';
+  document.getElementById('topicsGrid').style.display = 'none';
 
-function handleFileSelect(input) {
-  const file = input.files[0];
-  if (!file) return;
-  if (!file.name.endsWith('.docx')) {
-    alert('仅支持 .docx 文件（Word 2007+ 格式）');
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    uploadedFileBase64 = e.target.result.split(',')[1]; // 去掉 data:... 前缀
-    document.querySelector('#uploadZone p').textContent = '✅ '+file.name+' ('+(file.size/1024).toFixed(0)+'KB)';
-  };
-  reader.readAsDataURL(file);
-}
-
-function log2(msg, type) {
-  const el = document.getElementById('log2');
-  if (!el) return;
-  const cls = type === 'ok' ? 'log-ok' : type === 'error' ? 'log-error' : type === 'warn' ? 'log-warn' : 'log-info';
-  el.innerHTML += '<div class="log-line '+cls+'">'+msg+'</div>';
-  el.scrollTop = el.scrollHeight;
-}
-
-async function doDocPreview() {
-  if (!uploadedFileBase64) { alert('请先上传文档'); return; }
-  log2('🔍 正在解析文档…');
-  const title = document.getElementById('docTitle').value.trim();
   try {
-    const d = await apiCall('upload', {file_base64: uploadedFileBase64, title: title || undefined});
-    if (d && d.status === 'error') { log2('❌ 解析失败: '+(d.message||d.error||''), 'error'); return; }
-    if (!d.markdown) { log2('❌ 解析结果异常：markdown 为空', 'error'); return; }
-    window._docMarkdown = d.markdown;
-    if (!title && d.text) {
-      const firstLine = d.text.split(/[\\n\\r]+/)[0].trim();
-      if (firstLine.length <= 50) document.getElementById('docTitle').value = firstLine;
-    }
-    const preview = d.markdown.slice(0, 500);
-    document.getElementById('parsePreview').textContent = preview + (d.markdown.length > 500 ? '\\n…' : '');
-    log2('✅ 解析成功，共 '+d.markdown.length+' 字符', 'ok');
-  } catch(e) { log2('❌ 解析请求失败: '+e.message, 'error'); }
-}
+    log('🚀 启动全链路...');
+    setStep(1, 'active');
 
-async function doDocPipeline(evt) {
-  const btn = (evt || event).target;
-  btn.disabled = true; btn.textContent = '⚡ 运行中…';
-  log2('🚀 文档导入链路启动…');
-  try {
-    // ── 解析文档（如果还没预览解析过） ──
-    let md = window._docMarkdown;
-    if (!md) {
-      if (!uploadedFileBase64) { alert('请先上传文档'); btn.disabled = false; btn.textContent = '⚡ 解析 → 排版 → 发布'; return; }
-      log2('→ 解析文档…');
-      const title = document.getElementById('docTitle').value.trim();
-      const d = await apiCall('upload', {file_base64: uploadedFileBase64, title: title || undefined});
-      if (d && d.status === 'error') { log2('❌ 解析失败: '+(d.message||d.error||''), 'error'); btn.disabled = false; btn.textContent = '⚡ 解析 → 排版 → 发布'; return; }
-      if (!d.markdown) { log2('❌ 解析结果异常：markdown 为空', 'error'); btn.disabled = false; btn.textContent = '⚡ 解析 → 排版 → 发布'; return; }
-      md = d.markdown;
-      window._docMarkdown = md;
-      if (!title && d.text) {
-        const fl = d.text.split(/[\\n\\r]+/)[0].trim();
-        if (fl.length <= 50) document.getElementById('docTitle').value = fl;
+    const r = await callAPI('pipeline', {
+      keyword: document.getElementById('keyword').value,
+      days: parseInt(document.getElementById('days').value),
+      template_id: document.getElementById('template_id').value,
+      account_id: document.getElementById('account_id').value
+    });
+
+    if (r.status === 'ok') {
+      setStep(1, 'done');
+      setStep(2, 'done');
+      setStep(3, 'done');
+      setStep(4, 'done');
+      setStep(5, 'done');
+      state.draft_id = r.draft_id || '';
+      state.preview_url = r.preview_url || '';
+      log('✅ 选题：「' + r.topic + '」', 'ok');
+      log('📝 草稿已推送至公众号后台 [' + r.html_length + ' 字符]', 'ok');
+      if (r.preview_url) log('🔗 预览链接：' + r.preview_url);
+      log('🎉 全链路执行完成！请在公众号后台审核发布', 'ok');
+      showToast('草稿已推送，请去公众号后台审核发布', 'ok');
+      if (r.preview_url) {
+        setTimeout(() => window.open(r.preview_url, '_blank'), 1500);
       }
-      document.getElementById('parsePreview').textContent = md.slice(0, 500) + (md.length > 500 ? '\\n…' : '');
-      log2('✅ 解析成功', 'ok');
-    }
-    log2('→ 排版中…');
-    const formatted = await apiCall('format', {markdown: md, template: 'terminal'});
-    log2('→ 排版完成', 'ok');
-    log2('→ 发布到微信公众号…');
-    const pub = await apiCall('publish', {html: formatted.html, title: formatted.title || '文档导入', coverUrl: formatted.coverUrl || ''});
-    if (pub && pub.status === 'error') {
-      log2('⚠️ 发布未完成: '+(pub.message || '发布模块需配置微信公众号 API Key')+'。可在本地环境完整运行。', 'warn');
-    } else if (pub && (pub.articleId || pub.media_id)) {
-      log2('✅ 发布成功！草稿 ID: '+(pub.media_id || pub.articleId), 'ok');
     } else {
-      log2('✅ 文档链路模拟完成（演示模式，未真实发布）', 'ok');
+      log('❌ 失败: ' + (r.message || JSON.stringify(r)), 'error');
+      showToast('执行失败: ' + (r.message || '未知错误'), 'error');
     }
   } catch(e) {
-    log2('❌ 错误: '+e.message, 'error');
+    log('❌ 网络错误: ' + e.message, 'error');
+    showToast('网络错误', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ 一键运行全链路';
   }
-  btn.disabled = false; btn.textContent = '⚡ 运行全链路';
 }
-// ── 拖拽上传 ─────────────────────────────────────────────────
-const zone = document.getElementById('uploadZone');
-if (zone) {
-  ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('dragover'); }));
-  ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('dragover'); }));
-  zone.addEventListener('drop', e => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && file.name.endsWith('.docx')) {
-      document.getElementById('fileInput').files = e.dataTransfer.files;
-      handleFileSelect(document.getElementById('fileInput'));
-    } else if (file) {
-      alert('仅支持 .docx 文件');
-    }
-  });
+
+function showPreview(html) {
+  const card = document.getElementById('previewCard');
+  const frame = document.getElementById('previewFrame');
+  card.style.display = 'block';
+  frame.srcdoc = '<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{padding:20px;max-width:750px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,PingFang SC,Microsoft YaHei,sans-serif}.preview-watermark{position:fixed;bottom:10px;right:10px;font-size:11px;color:#ccc;pointer-events:none}</style></head><body>' + html + '<div class=preview-watermark>PenPulse 预览</div></body></html>';
+}
+
+function openInWechat() {
+  if (state.preview_url) window.open(state.preview_url, '_blank');
+  else window.open('https://mp.weixin.qq.com', '_blank');
+}
+
+// Template Gallery
+const TEMPLATES = {
+  zhaojian: [
+    { id: 'journal',      file: 'zhaojian-001-editorial.html',    icon: '📰', name: '编辑部视角',   desc: '经典报纸感，首选' },
+    { id: 'magazine',     file: 'zhaojian-002-magazine.html',     icon: '📖', name: '杂志封面',     desc: '大图大字，视觉冲击' },
+    { id: 'cards',        file: 'zhaojian-003-cards.html',        icon: '🃏', name: '卡片瀑布流',   desc: '多模块并列展示' },
+    { id: 'dashboard',    file: 'zhaojian-004-dashboard.html',    icon: '📊', name: '数据仪表盘',   desc: '数据密集型展示' },
+    { id: 'minimal',      file: 'zhaojian-005-minimal.html',      icon: '✦',  name: '极简留白',     desc: '呼吸感，观点驱动' },
+    { id: 'chat',         file: 'zhaojian-006-chat.html',         icon: '💬', name: '对话气泡',     desc: '轻松聊天风格' },
+    { id: 'interview',    file: 'zhaojian-007-interview.html',    icon: '🎙', name: '访谈体',       desc: '问答场景还原' },
+    { id: 'city-compare', file: 'zhaojian-008-city-compare.html', icon: '🏙', name: '城市对比',     desc: '区域横向比较' },
+    { id: 'report',       file: 'zhaojian-009-report.html',       icon: '📋', name: '报告体',       desc: '正式严谨，调研风' },
+    { id: 'story',        file: 'zhaojian-010-story.html',        icon: '📖', name: '故事体',       desc: '叙事驱动，情感共鸣' },
+    { id: 'brief',        file: 'zhaojian-011-brief.html',        icon: '📰', name: '朝鉴简报',     desc: '信息密集，简短直接' },
+    { id: 'emotion',      file: 'zhaojian-012-emotion.html',      icon: '💡', name: '观点洞察',     desc: '反常识，犀利金句' },
+  ],
+  lengjing: [
+    { id: 'terminal',     file: 'prism-001-terminal.html',        icon: '💻', name: '终端界面',     desc: '代码/教程首选' },
+    { id: 'editor',       file: 'prism-002-code-editor.html',     icon: '⌨️', name: '代码编辑器',   desc: 'VS Code 暗色风格' },
+    { id: 'neon',         file: 'prism-003-neon.html',            icon: '🌆', name: '霓虹赛博',     desc: '紫青光效，酷炫' },
+    { id: 'glass',        file: 'prism-004-frosted.html',         icon: '🔮', name: '毛玻璃卡片',   desc: 'iOS 毛玻璃风格' },
+    { id: 'geek',         file: 'prism-005-geek-minimal.html',    icon: '⚡', name: '极客简约',     desc: '纯黑底白字，深度概念' },
+    { id: 'hologram',     file: 'prism-006-hologram.html',        icon: '🔮', name: '全息投影',     desc: '科幻 HUD 风格' },
+    { id: 'api-doc',      file: 'prism-007-api-doc.html',         icon: '📐', name: 'API 文档',     desc: '技术规范说明' },
+    { id: 'github',       file: 'prism-008-github.html',          icon: '🐙', name: 'GitHub 风格',  desc: '开发者工具展示' },
+    { id: 'paper',        file: 'prism-009-paper.html',           icon: '📄', name: '论文风',       desc: '学术研究风格' },
+    { id: 'trend',        file: 'prism-010-trend.html',           icon: '📈', name: '趋势分析',     desc: '市场/行业趋势' },
+    { id: 'product',      file: 'prism-011-product.html',         icon: '🎯', name: '产品拆解',     desc: '产品分析竞品对比' },
+    { id: 'career',       file: 'prism-012-career.html',          icon: '💼', name: '职业发展',     desc: '技术成长建议' },
+  ]
+};
+
+let galleryTab = 'zhaojian';
+let gallerySelected = null;
+
+function openGallery() {
+  galleryTab = 'zhaojian';
+  gallerySelected = null;
+  document.getElementById('galleryModal').classList.add('open');
+  document.getElementById('tabZhaojian').classList.add('active');
+  document.getElementById('tabLengjing').classList.remove('active');
+  document.getElementById('galleryUseBtn').disabled = true;
+  document.getElementById('galleryEmpty').style.display = 'flex';
+  document.getElementById('galleryIframe').style.display = 'none';
+  document.getElementById('galleryPreviewTitle').innerHTML = '选择模板查看效果';
+  renderGrid('zhaojian');
+}
+
+function closeGallery() {
+  document.getElementById('galleryModal').classList.remove('open');
+}
+
+function switchTab(tab) {
+  galleryTab = tab;
+  gallerySelected = null;
+  document.getElementById('tabZhaojian').classList.toggle('active', tab === 'zhaojian');
+  document.getElementById('tabLengjing').classList.toggle('active', tab === 'lengjing');
+  document.getElementById('galleryUseBtn').disabled = true;
+  document.getElementById('galleryEmpty').style.display = 'flex';
+  document.getElementById('galleryIframe').style.display = 'none';
+  document.getElementById('galleryPreviewTitle').innerHTML = '选择模板查看效果';
+  renderGrid(tab);
+}
+
+function renderGrid(tab) {
+  const grid = document.getElementById('galleryGrid');
+  const templates = TEMPLATES[tab];
+  grid.innerHTML = templates.map(t => '<div class="gallery-card" id="card-' + t.id + '" onclick="selectTemplate(\'' + t.id + '\')">' +
+    '<div class="gallery-card-num">' + t.file.split('-')[1] + '</div>' +
+    '<div class="gallery-card-icon">' + t.icon + '</div>' +
+    '<div class="gallery-card-name">' + t.name + '</div>' +
+    '<div class="gallery-card-desc">' + t.desc + '</div>' +
+    '</div>').join('');
+}
+
+function selectTemplate(id) {
+  gallerySelected = id;
+  const templates = TEMPLATES[galleryTab];
+  const tpl = templates.find(t => t.id === id);
+  if (!tpl) return;
+
+  document.querySelectorAll('.gallery-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.add('selected');
+
+  const iframe = document.getElementById('galleryIframe');
+  const empty = document.getElementById('galleryEmpty');
+  const title = document.getElementById('galleryPreviewTitle');
+  const useBtn = document.getElementById('galleryUseBtn');
+
+  empty.style.display = 'none';
+  iframe.style.display = 'block';
+  iframe.src = '/previews/' + tpl.file;
+  title.innerHTML = '<strong>' + tpl.icon + ' ' + tpl.name + '</strong> · ' + tpl.desc;
+  useBtn.disabled = false;
+}
+
+function useSelectedTemplate() {
+  if (!gallerySelected) return;
+  const sel = document.getElementById('template_id');
+  sel.value = gallerySelected;
+  closeGallery();
+  showToast('已切换到「' + gallerySelected + '」模板', 'ok');
 }
 </script>
 </body>
 </html>`;
-  return FRONTEND_HTML;
 };
 
-const API_BASE = '';
+// GET /previews/*.html
+async function handlePreviews(req, res, path) {
+  const { createReadStream, existsSync } = await import('fs');
+  const safePath = 'previews/' + path.split('/previews/')[1];
+  if (!safePath.includes('..') && existsSync(safePath)) {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.status(200).send(createReadStream(safePath));
+  }
+  return res.status(404).json({ error: 'Preview not found: ' + path });
+}
 
-let formatModule, researchModule, publishModule, uploadModule;
+// GET /
+async function handleHome(req, res) {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('X-Build-Version', '20250806-02');
+  return res.status(200).send(_htmlTemplate());
+}
 
+// Dynamic module loader
 async function getModules() {
-  if (!formatModule) {
-    const ext = process.env.SKIP_FORMAT ? 'skip' : 'format';
-    try {
-      formatModule = await import('./format.js');
-    } catch(e) {
-      formatModule = null;
-    }
-  }
-  if (!researchModule) {
-    try {
-      researchModule = await import('./research.js');
-    } catch(e) {
-      researchModule = null;
-    }
-  }
-  if (!publishModule) {
-    try {
-      publishModule = await import('./publish.js');
-    } catch(e) {
-      publishModule = null;
-    }
-  }
-  if (!uploadModule) {
-    try {
-      uploadModule = await import('./upload.js');
-    } catch(e) {
-      uploadModule = null;
-    }
-  }
+  const formatModule = await import('./format.js');
+  const researchModule = await import('./research.js');
+  const publishModule = await import('./publish.js');
+  const uploadModule = await import('./upload.js');
   return { formatModule, researchModule, publishModule, uploadModule };
 }
 
-async function handler(req, res) {
-  const url = new URL(req.url, 'http://localhost');
-  const path = url.pathname;
+// Main handler
+export default async function handler(req, res) {
+  const path = req.url || '/';
+
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // GET /previews/*.html
+  if (req.method === 'GET' && path.startsWith('/previews/') && path.endsWith('.html')) {
+    return handlePreviews(req, res, path);
+  }
 
   // GET / → 前端页面
   if (req.method === 'GET' && path === '/') {
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.setHeader('X-Build-Version', '20250806-01');
-    return res.status(200).send(_htmlTemplate());
-  }
-
-  // GET /previews/*.html → 模板预览静态文件
-  if (req.method === 'GET' && path.startsWith('/previews/') && path.endsWith('.html')) {
-    const { createReadStream, existsSync } = await import('fs');
-    // path like /previews/zhaojian-001-editorial.html → previews/zhaojian-001-editorial.html
-    const safePath = 'previews/' + path.split('/previews/')[1];
-    if (!safePath.includes('..') && existsSync(safePath)) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-      return res.status(200).send(createReadStream(safePath));
-    }
-    return res.status(404).json({ error: 'Preview not found: ' + path });
+    return handleHome(req, res);
   }
 
   // POST handling
@@ -448,49 +772,52 @@ async function handler(req, res) {
   const action = params.action || path.slice(1);
   const { formatModule, researchModule, publishModule, uploadModule } = await getModules();
 
-  let result;
-  let wrapErr;
-  switch (action) {
-    case 'research':
-      try {
-        result = researchModule
-          ? await researchModule.default({ keyword: params.keyword, days: params.days })
-          : { topics: [{ title: '演示选题：'+params.keyword+'相关', source: '模拟来源', tag: '演示' }], count: 1 };
-      } catch(e) {
-        result = { status: 'error', message: '选题搜索失败: '+e.message };
-      }
-      break;
-    case 'format':
-      try {
-        result = formatModule
-          ? await formatModule.default({ markdown: params.markdown, template: params.template })
-          : { html: '<article><p>'+params.markdown+'</p></article>', title: params.markdown?.slice(0,30) || '文章' };
-      } catch(e) {
-        result = { status: 'error', message: '排版失败: '+e.message };
-      }
-      break;
-    case 'publish':
-      try {
-        result = publishModule
-          ? await publishModule.default({ html: params.html, title: params.title, coverUrl: params.coverUrl })
-          : { articleId: 'demo_'+Date.now() };
-      } catch(e) {
-        result = { status: 'error', message: '发布失败: '+e.message };
-      }
-      break;
-    case 'upload':
-      try {
-        result = uploadModule
-          ? await uploadModule.default({ file_base64: params.file_base64, title: params.title })
-          : { error: '文档解析模块未就绪' };
-      } catch(e) {
-        result = { status: 'error', message: '文档解析失败: '+e.message };
-      }
-      break;
-    default:
-      return res.status(400).json({ error: 'Unknown action: '+action });
+  try {
+    switch (action) {
+      case 'research':
+        return res.status(200).json(await researchModule.research(params));
+      case 'format':
+        return res.status(200).json(await formatModule.format(params));
+      case 'publish':
+        return res.status(200).json(await publishModule.publish(params));
+      case 'upload':
+        return res.status(200).json(await uploadModule.upload(params));
+      case 'pipeline':
+        return res.status(200).json(await runPipeline(params));
+      default:
+        return res.status(400).json({ error: 'Unknown action: ' + action });
+    }
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
   }
-  return res.status(200).json(result);
 }
 
-export default handler;
+async function runPipeline(params) {
+  const { formatModule, researchModule, publishModule } = await getModules();
+  
+  // Step 1: Research
+  const researchResult = await researchModule.research(params);
+  if (researchResult.status !== 'ok') return researchResult;
+  
+  // Step 2: Format
+  const formatResult = await formatModule.format({
+    markdown: researchResult.markdown,
+    template_id: params.template_id
+  });
+  if (formatResult.status !== 'ok') return formatResult;
+  
+  // Step 3: Publish
+  const publishResult = await publishModule.publish({
+    html: formatResult.html,
+    title: formatResult.title,
+    account_id: params.account_id
+  });
+  
+  return {
+    status: 'ok',
+    topic: researchResult.topic,
+    html_length: formatResult.html.length,
+    draft_id: publishResult.draft_id,
+    preview_url: publishResult.preview_url
+  };
+}
