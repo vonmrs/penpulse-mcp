@@ -336,38 +336,7 @@ const _htmlTemplate = () => {
   .upload-zone .hint { font-size: 12px; color: #4b5563; margin-top: 4px; }
   #fileInput { display: none; }
 
-  /* Tab Bar */
-  .main-tabs {
-    display: flex;
-    gap: 0;
-    margin-bottom: 24px;
-    border-bottom: 2px solid var(--border);
-  }
-  .main-tab {
-    flex: 1;
-    padding: 14px 20px;
-    text-align: center;
-    font-size: 14px;
-    cursor: pointer;
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    font-weight: 500;
-    transition: all 0.2s;
-    position: relative;
-  }
-  .main-tab:hover { color: var(--text); }
-  .main-tab.active { color: var(--primary-hover); }
-  .main-tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--primary);
-    border-radius: 1px;
-  }
+  /* Tab panels */
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
 </style>
@@ -386,15 +355,22 @@ const _htmlTemplate = () => {
     <p class="subtitle">选题 · AI 写作 · 智能排版 · 封面生成 · 自动发布，全链路自动化</p>
   </div>
 
-  <div class="main-tabs">
-    <button class="main-tab active" id="tabPipeline" onclick="switchMainTab('pipeline')">🤖 AI 全链路</button>
-    <button class="main-tab" id="tabUpload" onclick="switchMainTab('upload')">📄 文档导入</button>
-  </div>
-
   <!-- AI Pipeline Panel -->
+  <!-- 统一模式 + 共享模板 -->
   <div class="tab-panel active" id="panelPipeline">
     <div class="card">
-      <div class="pipeline-steps">
+      <!-- 模式切换 -->
+      <div class="mode-switcher">
+        <div class="mode-btn active" id="modeBtnPipeline" onclick="switchMainTab('pipeline')">
+          <span class="mode-icon">🤖</span><span>AI 全链路</span>
+        </div>
+        <div class="mode-btn" id="modeBtnUpload" onclick="switchMainTab('upload')">
+          <span class="mode-icon">📄</span><span>文档导入</span>
+        </div>
+      </div>
+
+      <!-- 流水线步骤（AI 模式专用） -->
+      <div class="pipeline-steps" id="pipelineSteps">
         <div class="step active" id="step1"><span class="step-icon">🔍</span>选题</div>
         <div class="step" id="step2"><span class="step-icon">✍️</span>写作</div>
         <div class="step" id="step3"><span class="step-icon">🎨</span>排版</div>
@@ -403,11 +379,12 @@ const _htmlTemplate = () => {
       </div>
 
       <div class="form-grid">
-        <div class="form-group">
+        <!-- AI 全链路 专属输入 -->
+        <div class="form-group" id="groupKeyword">
           <label>选题关键词</label>
           <input type="text" id="keyword" value="荆州 文旅" placeholder="例如：荆州高考、荆州招商">
         </div>
-        <div class="form-group">
+        <div class="form-group" id="groupDays">
           <label>搜索天数</label>
           <select id="days">
             <option value="3">最近 3 天</option>
@@ -416,6 +393,23 @@ const _htmlTemplate = () => {
             <option value="30">最近 30 天</option>
           </select>
         </div>
+
+        <!-- 文档导入 专属输入 -->
+        <div class="form-group" id="groupUpload" style="display:none;">
+          <label>上传文档</label>
+          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <div class="icon">📄</div>
+            <p>点击上传或拖拽 .docx / .md / .txt</p>
+            <p class="hint" id="uploadHint">支持 Word 和 Markdown 文件</p>
+          </div>
+          <input type="file" id="fileInput" accept=".docx,.md,.txt" onchange="handleFileSelect(this)" style="display:none;">
+        </div>
+        <div class="form-group" id="groupUploadTitle" style="display:none;">
+          <label>文章标题（可选）</label>
+          <input type="text" id="uploadTitle" placeholder="留空自动从内容提取">
+        </div>
+
+        <!-- 共享模板选择 -->
         <div class="form-group">
           <div class="gallery-label-row">
             <label>排版模板</label>
@@ -444,59 +438,23 @@ const _htmlTemplate = () => {
         </div>
       </div>
 
-      <div class="btn-row">
+      <!-- 共享操作按钮 -->
+      <div class="btn-row" id="actionButtons">
         <button class="btn-primary" id="btnRun" onclick="runPipeline()">▶ 一键运行全链路</button>
         <button class="btn-secondary" onclick="runStep('research')">🔍 只搜选题</button>
         <button class="btn-secondary" onclick="runStep('format')">🎨 只排版</button>
-        <button class="btn-secondary" onclick="clearLog()">🗑️ 清空日志</button>
+        <button class="btn-secondary" onclick="clearLog()">🗑️ 清空</button>
       </div>
 
+      <!-- AI 模式选题结果 -->
       <div class="topics-grid" id="topicsGrid" style="display:none;"></div>
-    </div>
-  </div>
 
-  <!-- Upload Panel -->
-  <div class="tab-panel" id="panelUpload">
-    <div class="card">
-      <div class="card-title">📤 上传文档</div>
-      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-        <div class="icon">📄</div>
-        <p>点击上传或拖拽 .docx / .md 文件</p>
-        <p class="hint">支持 Word 文档和 Markdown 文件</p>
-      </div>
-      <input type="file" id="fileInput" accept=".docx,.md,.txt" onchange="handleFileSelect(this)">
-      
-      <div class="form-group" style="margin-bottom: 16px;">
-        <label>文章标题（可选，留空自动从内容提取）</label>
-        <input type="text" id="uploadTitle" placeholder="输入标题...">
-      </div>
-      
-      <div class="form-group" style="margin-bottom: 16px;">
-        <label>排版模板</label>
-        <select id="uploadTemplate">
-          <option value="journal">📰 晨报头版（朝鉴风格）</option>
-          <option value="magazine">📖 杂志封面</option>
-          <option value="cards">🃏 卡片瀑布流</option>
-          <option value="dashboard">📊 数据仪表盘</option>
-          <option value="minimal">✦ 极简留白</option>
-          <option value="chat">💬 对话气泡</option>
-          <option value="terminal">💻 终端界面（棱镜风格）</option>
-          <option value="editor">⌨️ 代码编辑器</option>
-          <option value="neon">🌆 霓虹赛博</option>
-          <option value="glass">🔮 毛玻璃卡片</option>
-          <option value="geek">🧪 极客简约</option>
-          <option value="hologram">🔮 全息投影</option>
-        </select>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn-primary" onclick="uploadAndProcess()">⚡ 解析 → 排版 → 发布</button>
-        <button class="btn-secondary" onclick="previewUpload()">👁️ 预览解析</button>
-      </div>
-
-      <div id="uploadPreview" style="margin-top: 16px; display: none;">
-        <label>解析预览</label>
-        <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 13px; color: var(--text-muted); max-height: 200px; overflow-y: auto; line-height: 1.6;" id="uploadPreviewContent"></div>
+      <!-- 文档导入预览 -->
+      <div id="uploadPreview" style="display:none;">
+        <div style="margin-top:16px;">
+          <label>解析预览</label>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;color:var(--text-muted);max-height:200px;overflow-y:auto;line-height:1.6;" id="uploadPreviewContent"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -592,10 +550,26 @@ function clearLog() {
 }
 
 function switchMainTab(tab) {
-  document.getElementById('tabPipeline').classList.toggle('active', tab === 'pipeline');
-  document.getElementById('tabUpload').classList.toggle('active', tab === 'upload');
-  document.getElementById('panelPipeline').classList.toggle('active', tab === 'pipeline');
-  document.getElementById('panelUpload').classList.toggle('active', tab === 'upload');
+  // Toggle mode buttons
+  document.getElementById('modeBtnPipeline').classList.toggle('active', tab === 'pipeline');
+  document.getElementById('modeBtnUpload').classList.toggle('active', tab === 'upload');
+  // Show/hide pipeline steps
+  document.getElementById('pipelineSteps').style.display = (tab === 'pipeline') ? '' : 'none';
+  // Show/hide AI-mode fields
+  document.getElementById('groupKeyword').style.display = (tab === 'pipeline') ? '' : 'none';
+  document.getElementById('groupDays').style.display = (tab === 'pipeline') ? '' : 'none';
+  document.getElementById('groupUpload').style.display = (tab === 'upload') ? '' : 'none';
+  document.getElementById('groupUploadTitle').style.display = (tab === 'upload') ? '' : 'none';
+  // Switch action buttons
+  if (tab === 'pipeline') {
+    document.getElementById('btnRun').textContent = '▶ 一键运行全链路';
+    document.getElementById('btnRun').onclick = runPipeline;
+    document.getElementById('btnRun').id = 'btnRun';
+  } else {
+    document.getElementById('btnRun').textContent = '⚡ 解析 → 排版 → 发布';
+    document.getElementById('btnRun').onclick = uploadAndProcess;
+    document.getElementById('btnRun').id = 'btnRun';
+  }
 }
 
 async function callAPI(action, params) {
@@ -708,17 +682,21 @@ function handleFileSelect(input) {
   
   const reader = new FileReader();
   reader.onload = function(e) {
-    state.uploadContent = e.target.result;
+    const raw = e.target.result;
+    // ArrayBuffer (docx) -> decode to text
+    if (raw instanceof ArrayBuffer) {
+      const decoder = new TextDecoder('utf-8');
+      state.uploadContent = decoder.decode(raw);
+    } else {
+      state.uploadContent = raw;
+    }
     log('📄 已加载文件: ' + file.name + ' (' + Math.round(file.size/1024) + 'KB)', 'ok');
     document.getElementById('uploadPreview').style.display = 'block';
     document.getElementById('uploadPreviewContent').textContent = state.uploadContent.substring(0, 500) + (state.uploadContent.length > 500 ? '...' : '');
   };
   
-  if (file.name.endsWith('.docx')) {
-    reader.readAsArrayBuffer(file);
-  } else {
-    reader.readAsText(file);
-  }
+  // All files: read as text directly (TextDecoder handles encoding)
+  reader.readAsArrayBuffer(file);
 }
 
 function previewUpload() {
@@ -743,8 +721,8 @@ async function uploadAndProcess() {
     const r = await callAPI('upload', {
       content: state.uploadContent,
       title: document.getElementById('uploadTitle').value,
-      template_id: document.getElementById('uploadTemplate').value,
-      account_id: 'yinshuju'
+      template_id: document.getElementById('template_id').value,
+      account_id: document.getElementById('account_id').value
     });
     
     if (r.status === 'ok') {
@@ -908,16 +886,14 @@ function useSelectedTemplate() {
 </html>`;
 };
 
-// GET /previews/*.html
+// GET /previews/*.html → redirect to GitHub Raw CDN
 async function handlePreviews(req, res, path) {
-  const { createReadStream, existsSync } = await import('fs');
-  const safePath = 'previews/' + path.split('/previews/')[1];
-  if (!safePath.includes('..') && existsSync(safePath)) {
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    return res.status(200).send(createReadStream(safePath));
+  const file = path.split('/previews/')[1];
+  if (!file || file.includes('..')) {
+    return res.status(403).json({ error: 'Forbidden' });
   }
-  return res.status(404).json({ error: 'Preview not found: ' + path });
+  const cdnUrl = 'https://raw.githubusercontent.com/vonmrs/penpulse-mcp/main/previews/' + file;
+  return res.redirect(302, cdnUrl);
 }
 
 // GET /
@@ -926,7 +902,7 @@ async function handleHome(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  res.setHeader('X-Build-Version', '20250806-05-event-delegation');
+  res.setHeader('X-Build-Version', '20250806-06-layout-fix');
   return res.status(200).send(_htmlTemplate());
 }
 
@@ -941,7 +917,8 @@ async function getModules() {
 
 // Main handler
 export default async function handler(req, res) {
-  const path = req.url || '/';
+  const pathname = new URL(req.url, 'https://x').pathname;
+  const path = pathname.startsWith('/api/') ? pathname.slice(4) : pathname;
 
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
