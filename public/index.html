@@ -383,6 +383,41 @@
     border: 1px solid var(--border);
   }
 
+
+  .textarea-style {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    resize: vertical;
+    width: 100%;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+  .textarea-style:focus { border-color: var(--primary); }
+  #uploadPreviewContent {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    min-height: 80px;
+  }
+  .step { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .step-icon { font-size: 18px; }
+  /* Steps bar */
+  .steps-title { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 0.5px; }
   /* Outline buttons */
   .btn-outline {
     background: transparent;
@@ -414,8 +449,7 @@
   </div>
 
   <!-- 模式切换卡（独立卡片，上层） -->
-  <div class="card" style="padding: 12px 20px;">
-    <div class="mode-switcher" style="margin-bottom:0;">
+    <div class="mode-switcher">
       <div class="mode-btn active" id="modeBtnPipeline" onclick="switchMainTab('pipeline')">
         <span class="mode-icon">🤖</span><span>AI 全链路</span>
       </div>
@@ -423,11 +457,11 @@
         <span class="mode-icon">📄</span><span>文档导入</span>
       </div>
     </div>
-  </div>
 
   <!-- AI 流水线步骤（AI 模式专用，横铺，tab-panel 外层） -->
   <div class="tab-panel" id="panelSteps" style="display:none;">
     <div class="card" style="padding: 20px 28px;">
+      <div class="steps-title" style="font-size:12px;color:var(--text-muted);margin-bottom:12px;letter-spacing:0.5px;">执行流程</div>
       <div class="pipeline-steps" style="display:flex;gap:0;">
         <div class="step active" id="step1"><span class="step-icon">🔍</span><span>选题</span></div>
         <div class="step" id="step2"><span class="step-icon">✍️</span><span>写作</span></div>
@@ -472,8 +506,20 @@
           <input type="text" id="uploadTitle" placeholder="留空自动从内容提取">
         </div>
 
-        <!-- 共享模板选择 -->
-        <div class="form-group">
+        <!-- 文章摘要（文档导入模式，满宽） -->
+        <div class="form-group full" id="groupUploadSummary" style="display:none;">
+          <label>📌 文章摘要</label>
+          <textarea id="uploadSummary" rows="4" class="textarea-style" placeholder="上传文档后自动提取摘要，显示在此处"></textarea>
+        </div>
+
+        <!-- 解析预览（文档导入模式，满宽） -->
+        <div class="form-group full" id="groupUploadPreview" style="display:none;">
+          <label>📝 解析预览</label>
+          <div id="uploadPreviewContent" class="textarea-style"></div>
+        </div>
+
+        <!-- 共享模板选择（满宽） -->
+        <div class="form-group full">
           <div class="gallery-label-row">
             <label>排版模板</label>
             <button class="gallery-btn" onclick="openGallery()">📋 预览效果</button>
@@ -493,7 +539,9 @@
             <option value="hologram">🔮 全息投影</option>
           </select>
         </div>
-        <div class="form-group">
+
+        <!-- 公众号（满宽） -->
+        <div class="form-group full">
           <label>公众号</label>
           <select id="account_id">
             <option value="yinshuju">银枢局</option>
@@ -501,7 +549,7 @@
         </div>
       </div>
 
-      <!-- 操作按钮行 -->
+<!-- 操作按钮行 -->
       <div class="btn-row" id="actionButtons">
         <button class="btn-primary" id="btnRun" onclick="runPipeline()">▶ 一键运行全链路</button>
         <button class="btn-secondary" onclick="clearLog()">🗑️ 清空</button>
@@ -516,17 +564,7 @@
       <!-- AI 模式选题结果 -->
       <div class="topics-grid" id="topicsGrid" style="display:none;"></div>
 
-      <!-- 解析预览（文档导入模式） -->
-      <div class="form-group" id="groupUploadPreview" style="display:none;">
-        <label>📝 解析预览</label>
-        <div id="uploadPreviewContent" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;color:var(--text-muted);max-height:200px;overflow-y:auto;line-height:1.6;white-space:pre-wrap;word-break:break-all;"></div>
-      </div>
-
-      <!-- 文章摘要（文档导入模式，上传区右侧） -->
-      <div class="form-group" id="groupUploadSummary" style="display:none;">
-        <label>📌 文章摘要</label>
-        <textarea id="uploadSummary" rows="5" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13px;color:var(--text-muted);resize:vertical;line-height:1.6;" placeholder="上传文档后自动提取摘要，显示在此处"></textarea>
-      </div>
+      
     </div>
   </div>
 
