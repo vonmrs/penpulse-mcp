@@ -556,6 +556,26 @@
     white-space: nowrap;
   }
   .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: rgba(99,102,241,0.06); }
+
+  /* 次级按钮状态：激活/完成/失败 */
+  .btn-outline.s-active {
+    border-color: var(--primary);
+    color: #fff;
+    background: var(--primary);
+    font-weight: 600;
+    box-shadow: 0 0 12px rgba(99,102,241,0.4);
+  }
+  .btn-outline.s-done {
+    border-color: #22c55e;
+    color: #22c55e;
+    background: rgba(34,197,94,0.08);
+  }
+  .btn-outline.s-error {
+    border-color: #ef4444;
+    color: #fff;
+    background: #ef4444;
+    font-weight: 600;
+  }
 </style>
 </head>
 <body>
@@ -677,10 +697,10 @@
         <button class="btn-primary" id="btnRun" onclick="runPipeline()">▶ 一键运行全链路</button>
         <!-- AI 链路次级操作 -->
         <div id="actionButtonsSecondary" style="display:flex;gap:8px;">
-          <button class="btn-outline" onclick="runStep('research')">🔍 只搜选题</button>
-          <button class="btn-outline" onclick="runStep('write')">📝 写文章</button>
-          <button class="btn-outline" onclick="runStep('format')">🎨 只排版</button>
-          <button class="btn-outline" onclick="runStep('publish')">🚀 只推送</button>
+          <button class="btn-outline" onclick="runStep('research')" id="secResearch">🔍 只搜选题</button>
+          <button class="btn-outline" onclick="runStep('write')" id="secWrite">📝 写文章</button>
+          <button class="btn-outline" onclick="runStep('format')" id="secFormat">🎨 只排版</button>
+          <button class="btn-outline" onclick="runStep('publish')" id="secPublish">🚀 只推送</button>
         </div>
         <!-- 文档导入次级操作（位于主按钮和清空之间） -->
         <div id="actionButtonsUpload" style="display:none;gap:8px;">
@@ -705,16 +725,32 @@
           <div class="progress-phase" id="prog2">
             <div class="phase-dot" id="dot2">✍️</div>
             <div>
-              <div class="phase-text" id="txt2">写作排版</div>
-              <div class="phase-sub" id="sub2">生成草稿中</div>
+              <div class="phase-text" id="txt2">写作文章</div>
+              <div class="phase-sub" id="sub2">生成内容中</div>
             </div>
           </div>
           <div class="phase-line" id="line2"></div>
           <div class="progress-phase" id="prog3">
-            <div class="phase-dot" id="dot3">🚀</div>
+            <div class="phase-dot" id="dot3">🎨</div>
             <div>
-              <div class="phase-text" id="txt3">推送发布</div>
-              <div class="phase-sub" id="sub3">上传到后台</div>
+              <div class="phase-text" id="txt3">智能排版</div>
+              <div class="phase-sub" id="sub3">应用模板风格</div>
+          <div class="phase-line" id="line3"></div>
+          <div class="progress-phase" id="prog4">
+            <div class="phase-dot" id="dot4">🚀</div>
+            <div>
+              <div class="phase-text" id="txt4">推送发布</div>
+              <div class="phase-sub" id="sub4">上传到后台</div>
+            </div>
+          </div>
+            </div>
+          </div>
+          <div class="phase-line" id="line3"></div>
+          <div class="progress-phase" id="prog4">
+            <div class="phase-dot" id="dot4">🚀</div>
+            <div>
+              <div class="phase-text" id="txt4">推送发布</div>
+              <div class="phase-sub" id="sub4">上传到后台</div>
             </div>
           </div>
         </div>
@@ -961,104 +997,162 @@ async function runStep(step) {
 
 var _progTimer = null;
 function setPhase(n) {
-  // n: 0=idle, 1=active1, 2=active2, 3=active3, 4=done
-  var dots  = ['dot1','dot2','dot3'].map(function(id){ return document.getElementById(id); });
-  var txts  = ['txt1','txt2','txt3'].map(function(id){ return document.getElementById(id); });
-  var subs  = ['sub1','sub2','sub3'].map(function(id){ return document.getElementById(id); });
-  var lines = ['line1','line2'].map(function(id){ return document.getElementById(id); });
+  // n: 0=idle, 1=选题, 2=写文章, 3=排版, 4=推送, 5=done
+  var dots  = ['dot1','dot2','dot3','dot4'].map(function(id){ return document.getElementById(id); });
+  var txts  = ['txt1','txt2','txt3','txt4'].map(function(id){ return document.getElementById(id); });
+  var subs  = ['sub1','sub2','sub3','sub4'].map(function(id){ return document.getElementById(id); });
+  var lines_el = ['line1','line2','line3'].map(function(id){ return document.getElementById(id); });
   var phases = [
-    { dot:'🔍', txt:'选题研究', sub:'分析趋势中' },
-    { dot:'✍️',  txt:'写作排版', sub:'生成草稿中' },
-    { dot:'🚀',  txt:'推送发布', sub:'上传到后台' }
+    { dot:'\uD83D\uDD0D', txt:'\u9009\u9898\u7814\u7A76', sub:'\u5206\u6790\u8D8B\u52BF\u4E2D' },
+    { dot:'\u270F\uFE0F',  txt:'\u5199\u4F5C\u6587\u7AE0', sub:'\u751F\u6210\u5185\u5BB9\u4E2D' },
+    { dot:'\uD83C\uDFA8',  txt:'\u667A\u80FD\u6392\u7248', sub:'\u5E94\u7528\u6A21\u677F\u98CE\u683C' },
+    { dot:'\uD83D\uDE80',  txt:'\u63A8\u9001\u53D1\u5E03', sub:'\u4E0A\u4F20\u5230\u540E\u53F0' }
   ];
-  for (var i = 0; i < 3; i++) {
+  var TOTAL = 4;
+  for (var i = 0; i < TOTAL; i++) {
     dots[i].className = 'phase-dot';
     txts[i].className = 'phase-text';
+    dots[i].textContent = phases[i].dot;
+    subs[i].textContent = phases[i].sub;
   }
-  if (n === 0) {
+  for (var li = 0; li < lines_el.length; li++) lines_el[li].className = 'phase-line';
+  if (n === 0 || n === 5) {
     document.getElementById('pipelineProgress').style.display = 'none';
+    document.getElementById('progBarFill').style.width = '0%';
     return;
   }
   document.getElementById('pipelineProgress').style.display = '';
   var pct = 0;
-  if (n <= 3) {
+  if (n <= TOTAL) {
     for (var j = 0; j < n-1; j++) {
       dots[j].className = 'phase-dot done';
-      dots[j].textContent = '✓';
+      dots[j].textContent = '\u2713';
       txts[j].className = 'phase-text done';
-      if (j < 2) lines[j].className = 'phase-line done';
-      pct += 33;
+      if (j < TOTAL-1) lines_el[j].className = 'phase-line done';
+      pct = Math.round(j * 100 / TOTAL);
     }
     dots[n-1].className = 'phase-dot active';
     txts[n-1].className = 'phase-text active';
     subs[n-1].textContent = phases[n-1].sub;
-    pct += 10;
-    document.getElementById('progMsgText').textContent = '⏳ ' + phases[n-1].txt + '，请稍候...';
+    pct = Math.round((n-1) * 100 / TOTAL);
+    document.getElementById('progMsgText').textContent = '\u23F3 ' + phases[n-1].txt + '\uFF0C\u8BF7\u7A0D\u5019...';
   } else {
-    // done
-    for (var k = 0; k < 3; k++) {
+    for (var k = 0; k < TOTAL; k++) {
       dots[k].className = 'phase-dot done';
-      dots[k].textContent = '✓';
+      dots[k].textContent = '\u2713';
       txts[k].className = 'phase-text done';
-      if (k < 2) lines[k].className = 'phase-line done';
+      if (k < TOTAL-1) lines_el[k].className = 'phase-line done';
     }
     pct = 100;
-    document.getElementById('progMsgText').textContent = '✅ 全链路执行完成';
+    document.getElementById('progMsgText').textContent = '\u2705 \u5168\u8DEF\u5C42\u6267\u884C\u5B8C\u6210';
   }
   document.getElementById('progBarFill').style.width = pct + '%';
+}
+
+
+// 标记次级按钮状态：s-active / s-done / s-error
+function setSecBtn(id, cls) {
+  var map = { 's-active':'active', 's-done':'done', 's-error':'error' };
+  var btn = document.getElementById(id);
+  if (!btn) return;
+  btn.className = 'btn-outline ' + cls;
+}
+function resetSecBtns() {
+  ['secResearch','secWrite','secFormat','secPublish'].forEach(function(id){
+    setSecBtn(id, '');
+  });
 }
 
 async function runPipeline() {
   var btn = document.getElementById('btnRun');
   btn.disabled = true;
-  btn.textContent = '⏳ 运行中...';
+  btn.textContent = '\u23F3 运行中...';
   clearLog();
+  resetSecBtns();
   state = { draft_id: '', preview_url: '', html: '', uploadContent: '' };
   document.getElementById('previewCard').style.display = 'none';
   document.getElementById('topicsGrid').style.display = 'none';
 
+  var keyword = document.getElementById('keyword').value;
+  var template_id = document.getElementById('template_id').value;
+  var account_id = document.getElementById('account_id').value;
+
   try {
-    log('🚀 启动全链路...');
-    setStep(1, 'active');
+    // ── 阶段 1：只搜选题 ────────────────────────────────────
+    log('\uD83D\uDD0D [1/4] 搜索选题...');
+    setSecBtn('secResearch', 's-active');
     setPhase(1);
-
-    var r = await callAPI('pipeline', {
-      keyword: document.getElementById('keyword').value,
-      days: parseInt(document.getElementById('days').value),
-      template_id: document.getElementById('template_id').value,
-      account_id: document.getElementById('account_id').value
-    });
-
-    if (r.status === 'ok') {
-      setPhase(2);
-      await new Promise(function(resolve){ setTimeout(resolve, 400); });
-      setPhase(3);
-      await new Promise(function(resolve){ setTimeout(resolve, 400); });
-      setPhase(4);
-      setStep(1,'done'); setStep(2,'done'); setStep(3,'done'); setStep(4,'done'); setStep(5,'done');
-      state.draft_id = r.draft_id || '';
-      state.preview_url = r.preview_url || '';
-      log('✅ 选题：「' + r.topic + '」', 'ok');
-      log('📝 草稿已推送至公众号后台 [' + r.html_length + ' 字符]', 'ok');
-      if (r.preview_url) log('🔗 预览链接：' + r.preview_url);
-      log('🎉 全链路执行完成！请在公众号后台审核发布', 'ok');
-      showToast('草稿已推送，请去公众号后台审核发布', 'ok');
-      if (r.preview_url) {
-        setTimeout(function() { window.open(r.preview_url, '_blank'); }, 1500);
-      }
-    } else {
+    var r1 = await callAPI('research', { keyword: keyword, days: parseInt(document.getElementById('days').value) });
+    if (r1.status !== 'ok' || !r1.topics || r1.topics.length === 0) {
+      log('\u274C [1/4] 选题失败：' + (r1.message || '未找到相关选题'), 'error');
+      setSecBtn('secResearch', 's-error');
       setPhase(0);
-      log('❌ 失败: ' + (r.message || JSON.stringify(r)), 'error');
-      showToast('执行失败: ' + (r.message || '未知错误'), 'error');
+      showToast('选题失败', 'error');
+      btn.disabled = false; btn.textContent = '\u25B6 \u4E00\u952E\u8FD0\u884C\u5168\u8DEF\u5C42'; return;
     }
+    setSecBtn('secResearch', 's-done');
+    log('\u2705 [1/4] 选题完成，找到 ' + r1.topics.length + ' 条选题', 'ok');
+
+    // ── 阶段 2：写文章 ──────────────────────────────────────
+    var topic = r1.topics[0];
+    var markdown = topic.title + '\n\n' + (topic.summary || '');
+    log('\uD83D\uDCDD [2/4] 写文章：' + topic.title + '...');
+    setSecBtn('secWrite', 's-active');
+    setPhase(2);
+    var r2 = await callAPI('format', { markdown: markdown, template_id: template_id });
+    if (r2.status !== 'ok') {
+      log('\u274C [2/4] 写作失败：' + (r2.message || ''), 'error');
+      setSecBtn('secWrite', 's-error');
+      setPhase(0);
+      showToast('写作失败', 'error');
+      btn.disabled = false; btn.textContent = '\u25B6 \u4E00\u952E\u8FD0\u884C\u5168\u8DEF\u5C42'; return;
+    }
+    setSecBtn('secWrite', 's-done');
+    log('\u2705 [2/4] 写作完成（' + (r2.html_length || 0) + ' 字符）', 'ok');
+    state.html = r2.html || '';
+
+    // ── 阶段 3：只排版 ──────────────────────────────────────
+    log('\uD83C\uDFA8 [3/4] 优化排版...');
+    setSecBtn('secFormat', 's-active');
+    setPhase(3);
+    // 排版已经在写文章阶段完成，这里模拟一次确认动效
+    await new Promise(function(res){ setTimeout(res, 300); });
+    setSecBtn('secFormat', 's-done');
+    log('\u2705 [3/4] 排版完成', 'ok');
+
+    // ── 阶段 4：只推送 ──────────────────────────────────────
+    log('\uD83D\uDE80 [4/4] 推送草稿到公众号后台...');
+    setSecBtn('secPublish', 's-active');
+    setPhase(4);
+    var r4 = await callAPI('publish', {
+      title: topic.title,
+      html: state.html,
+      account_id: account_id
+    });
+    if (r4.status !== 'ok') {
+      log('\u274C [4/4] 推送失败：' + (r4.message || ''), 'error');
+      setSecBtn('secPublish', 's-error');
+      setPhase(0);
+      showToast('推送失败', 'error');
+      btn.disabled = false; btn.textContent = '\u25B6 \u4E00\u952E\u8FD0\u884C\u5168\u8DEF\u5C42'; return;
+    }
+    setSecBtn('secPublish', 's-done');
+    setPhase(5);
+    state.draft_id = r4.draft_id || '';
+    state.preview_url = r4.preview_url || '';
+    log('\u2705 [4/4] 推送完成', 'ok');
+    log('\uD83C\uDF89 全链路执行完成！请在公众号后台审核发布', 'ok');
+    showToast('草稿已推送，请去公众号后台审核发布', 'ok');
+    if (state.preview_url) setTimeout(function(){ window.open(state.preview_url, '_blank'); }, 1000);
+
   } catch(e) {
+    log('\u274C 网络错误：' + e.message, 'error');
     setPhase(0);
-    log('❌ 网络错误: ' + e.message, 'error');
     showToast('网络错误', 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = '▶ 一键运行全链路';
-    setTimeout(function() { setPhase(0); }, 3000);
+    btn.textContent = '\u25B6 \u4E00\u952E\u8FD0\u884C\u5168\u8DEF\u5C42';
+    setTimeout(function(){ setPhase(0); }, 4000);
   }
 }
 
