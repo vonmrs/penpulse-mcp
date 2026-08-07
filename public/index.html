@@ -629,16 +629,16 @@
           <input type="text" id="uploadTitle" placeholder="留空自动从内容提取">
         </div>
 
-        <!-- 文章摘要（文档导入模式，满宽） -->
-        <div class="form-group full" id="groupUploadSummary" style="display:none;">
-          <label>📌 文章摘要</label>
-          <textarea id="uploadSummary" rows="4" class="textarea-style" placeholder="上传文档后自动提取摘要，显示在此处"></textarea>
-        </div>
-
         <!-- 解析预览（文档导入模式，满宽） -->
         <div class="form-group full" id="groupUploadPreview" style="display:none;">
           <label>📝 解析预览</label>
           <div id="uploadPreviewContent" class="textarea-style"></div>
+        </div>
+
+        <!-- 文章摘要（文档导入模式，满宽） -->
+        <div class="form-group full" id="groupUploadSummary" style="display:none;">
+          <label>📌 文章摘要</label>
+          <textarea id="uploadSummary" rows="4" class="textarea-style" placeholder="上传文档后自动提取摘要，显示在此处"></textarea>
         </div>
 
         <!-- 共享模板选择（满宽） -->
@@ -648,13 +648,13 @@
             <button class="gallery-btn" onclick="openGallery()">📋 预览效果</button>
           </div>
           <select id="template_id">
-            <option value="journal">📰 晨报头版（朝鉴风格）</option>
+            <option value="journal">📰 晨报头版（Bright style）</option>
             <option value="magazine">📖 杂志封面</option>
             <option value="cards">🃏 卡片瀑布流</option>
             <option value="dashboard">📊 数据仪表盘</option>
             <option value="minimal">✦ 极简留白</option>
             <option value="chat">💬 对话气泡</option>
-            <option value="terminal">💻 终端界面（棱镜风格）</option>
+            <option value="terminal">💻 终端界面（Dark style）</option>
             <option value="editor">⌨️ 代码编辑器</option>
             <option value="neon">🌆 霓虹赛博</option>
             <option value="glass">🔮 毛玻璃卡片</option>
@@ -765,8 +765,8 @@
       <button class="gallery-close" onclick="closeGallery()">✕</button>
     </div>
     <div class="gallery-tabs">
-      <button class="gallery-tab active" id="tabZhaojian" onclick="switchTab('zhaojian')">📰 朝鉴风格（12套）</button>
-      <button class="gallery-tab" id="tabLengjing" onclick="switchTab('lengjing')">💻 棱镜风格（12套）</button>
+      <button class="gallery-tab active" id="tabZhaojian" onclick="switchTab('zhaojian')">📰 Bright style（12套）</button>
+      <button class="gallery-tab" id="tabLengjing" onclick="switchTab('lengjing')">💻 Dark style（12套）</button>
     </div>
     <div class="gallery-body">
       <div class="gallery-grid-wrap">
