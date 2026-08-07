@@ -631,7 +631,7 @@
           <!-- 文章摘要（紧跟标题下方） -->
           <div style="margin-top:12px;">
             <label style="font-size:13px;color:var(--text-muted);margin-bottom:4px;display:block;">📌 文章摘要</label>
-            <textarea id="uploadSummary" rows="3" class="textarea-style" placeholder="上传文档后自动提取摘要" style="width:100%;resize:vertical;"></textarea>
+            <textarea id="uploadSummary" rows="4" class="textarea-style" placeholder="上传文档后自动提取摘要" style="width:100%;resize:vertical;"></textarea>
           </div>
         </div>
 
@@ -679,6 +679,8 @@
         <div id="actionButtonsSecondary" style="display:flex;gap:8px;">
           <button class="btn-outline" onclick="runStep('research')">🔍 只搜选题</button>
           <button class="btn-outline" onclick="runStep('write')">📝 写文章</button>
+          <button class="btn-outline" onclick="runStep('format')">🎨 只排版</button>
+          <button class="btn-outline" onclick="runStep('publish')">🚀 只推送</button>
         </div>
         <!-- 文档导入次级操作（位于主按钮和清空之间） -->
         <div id="actionButtonsUpload" style="display:flex;gap:8px;">
