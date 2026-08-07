@@ -679,8 +679,19 @@
         <!-- 次级操作：仅 AI 全链路模式显示 -->
         <div id="actionButtonsSecondary" style="display:flex;gap:8px;margin-left:4px;">
           <button class="btn-outline" onclick="runStep('research')">🔍 只搜选题</button>
+          <button class="btn-outline" onclick="runStep('write')">📝 写文章</button>
           <button class="btn-outline" onclick="runStep('format')">🎨 只排版</button>
           <button class="btn-outline" onclick="runStep('publish')">🚀 只推送</button>
+        </div>
+      </div>
+
+      <!-- 文档导入次级操作按钮（解析模式专用） -->
+      <div id="actionButtonsUpload" style="display:none; margin-top:12px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;letter-spacing:0.5px;">文档模式 · 单独执行</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-outline" onclick="runUploadStep('parse')">📄 只解析</button>
+          <button class="btn-outline" onclick="runUploadStep('format')">🎨 只排版</button>
+          <button class="btn-outline" onclick="runUploadStep('publish')">🚀 只推送</button>
         </div>
       </div>
 
@@ -834,6 +845,7 @@ function switchMainTab(tab) {
   document.getElementById('groupUploadTitle').style.display = (tab === 'upload') ? '' : 'none';
   // Upload-mode preview: preview + summary
   document.getElementById('groupUploadPreview').style.display = (tab === 'upload') ? '' : 'none';
+  document.getElementById('actionButtonsUpload').style.display = (tab === 'upload') ? '' : 'none';
   document.getElementById('groupUploadSummary').style.display = (tab === 'upload') ? '' : 'none';
   // Secondary actions (只搜选题/只排版/只推送) in pipeline mode only
   document.getElementById('actionButtonsSecondary').style.display = (tab === 'pipeline') ? '' : 'none';
@@ -873,6 +885,36 @@ async function runStep(step) {
     } else {
       log('❌ ' + (r.message || '搜索失败'), 'error');
     }
+
+  } else if (step === 'write') {
+    log('📝 开始写文章...');
+    setStep(1, 'active'); setStep(2, 'active');
+    setPhase(1);
+    const r = await callAPI('write', {
+      keyword: document.getElementById('keyword').value,
+      days: parseInt(document.getElementById('days').value),
+      template_id: document.getElementById('template_id').value,
+      account_id: document.getElementById('account_id').value
+    });
+    if (r.status === 'ok') {
+      setPhase(2); await new Promise(function(res){ setTimeout(res, 400); });
+      setPhase(3); await new Promise(function(res){ setTimeout(res, 400); });
+      setPhase(4);
+      state.html = r.html || '';
+      state.draft_id = r.draft_id || '';
+      state.preview_url = r.preview_url || '';
+      log('✅ 文章写好啦！选题：「' + r.topic + '」', 'ok');
+      log('📝 草稿已推送至公众号后台 [' + (r.html_length || 0) + ' 字符]', 'ok');
+      if (r.preview_url) { log('🔗 预览：' + r.preview_url); showToast('草稿已推送！', 'ok'); }
+      else { showToast('草稿已推送！', 'ok'); }
+      setStep(1,'done'); setStep(2,'done'); setStep(3,'done'); setStep(4,'done'); setStep(5,'done');
+      setTimeout(function(){ setPhase(0); }, 3000);
+    } else {
+      setPhase(0);
+      log('❌ 写作失败：' + (r.message || '未知错误'), 'error');
+      showToast('写作失败', 'error');
+    }
+  
   } else if (step === 'publish') {
     // 只推送：需要先有草稿（html + title + account_id）
     var draftId = state.draft_id;
@@ -1082,6 +1124,129 @@ function previewUpload() {
   var previewText2 = state.uploadContent.substring(0, 1000);
   if (state.uploadContent.length > 1000) previewText2 = previewText2 + '\x0a\x0a[...]（后续内容将在服务器端处理）';
   document.getElementById('uploadPreviewContent').textContent = previewText2;
+}
+
+// 文档导入模式的三阶段动效
+function setUploadPhase(n) {
+  // 复用 setPhase 的 DOM 结构，但文案换成文档模式
+  var phases = [
+    { dot:'📄', txt:'文档解析', sub:'提取文字内容' },
+    { dot:'🎨', txt:'智能排版', sub:'应用模板风格' },
+    { dot:'🚀', txt:'推送发布', sub:'上传到后台' }
+  ];
+  var dots  = ['dot1','dot2','dot3'].map(function(id){ return document.getElementById(id); });
+  var txts  = ['txt1','txt2','txt3'].map(function(id){ return document.getElementById(id); });
+  var subs  = ['sub1','sub2','sub3'].map(function(id){ return document.getElementById(id); });
+  var lines = ['line1','line2'].map(function(id){ return document.getElementById(id); });
+  // reset all
+  for (var i = 0; i < 3; i++) {
+    dots[i].className = 'phase-dot';
+    txts[i].className = 'phase-text';
+    dots[i].textContent = phases[i].dot;
+    subs[i].textContent = phases[i].sub;
+  }
+  if (n === 0) {
+    document.getElementById('pipelineProgress').style.display = 'none';
+    return;
+  }
+  document.getElementById('pipelineProgress').style.display = '';
+  var pct = 0;
+  for (var j = 0; j < 3; j++) {
+    dots[j].className = 'phase-dot';
+    txts[j].className = 'phase-text';
+    dots[j].textContent = phases[j].dot;
+  }
+  if (n <= 3) {
+    for (var k = 0; k < n-1; k++) {
+      dots[k].className = 'phase-dot done';
+      dots[k].textContent = '\u2713';
+      txts[k].className = 'phase-text done';
+      if (k < 2) lines[k].className = 'phase-line done';
+      pct += 33;
+    }
+    dots[n-1].className = 'phase-dot active';
+    txts[n-1].className = 'phase-text active';
+    subs[n-1].textContent = phases[n-1].sub;
+    pct += 10;
+    document.getElementById('progMsgText').textContent = '\u23F3 ' + phases[n-1].txt + '，请稍候...';
+  } else {
+    for (var m = 0; m < 3; m++) {
+      dots[m].className = 'phase-dot done';
+      dots[m].textContent = '\u2713';
+      txts[m].className = 'phase-text done';
+      if (m < 2) lines[m].className = 'phase-line done';
+    }
+    pct = 100;
+    document.getElementById('progMsgText').textContent = '\u2705 文档处理完成';
+  }
+  document.getElementById('progBarFill').style.width = pct + '%';
+}
+
+async function runUploadStep(step) {
+  if (!state.uploadContent) {
+    showToast('请先上传文档', 'error');
+    return;
+  }
+  if (step === 'parse') {
+    clearLog();
+    log('📄 开始解析文档...');
+    setUploadPhase(1);
+    const r = await callAPI('parse', { content: state.uploadContent });
+    if (r.status === 'ok') {
+      setUploadPhase(4);
+      log('✅ 解析完成！', 'ok');
+      showToast('文档解析完成', 'ok');
+      setTimeout(function(){ setUploadPhase(0); }, 2500);
+    } else {
+      setUploadPhase(0);
+      log('❌ ' + (r.message || '解析失败'), 'error');
+    }
+  } else if (step === 'format') {
+    clearLog();
+    log('🎨 开始排版...');
+    setUploadPhase(1);
+    const r = await callAPI('format', {
+      markdown: state.uploadContent,
+      template_id: document.getElementById('template_id').value
+    });
+    if (r.status === 'ok') {
+      state.html = r.html || '';
+      setUploadPhase(2); await new Promise(function(res){ setTimeout(res, 400); });
+      setUploadPhase(4);
+      log('✅ 排版完成 (' + (r.html_length || 0) + ' 字符)', 'ok');
+      showPreview(r.html);
+      showToast('排版完成！', 'ok');
+      setTimeout(function(){ setUploadPhase(0); }, 2500);
+    } else {
+      setUploadPhase(0);
+      log('❌ ' + (r.message || '排版失败'), 'error');
+    }
+  } else if (step === 'publish') {
+    if (!state.html) {
+      showToast('请先执行「只排版」生成草稿', 'error');
+      return;
+    }
+    clearLog();
+    log('🚀 开始推送草稿...');
+    setUploadPhase(1);
+    const r = await callAPI('publish', {
+      html: state.html,
+      account_id: document.getElementById('account_id').value
+    });
+    if (r.status === 'ok') {
+      state.draft_id = r.draft_id || '';
+      state.preview_url = r.preview_url || '';
+      setUploadPhase(2); await new Promise(function(res){ setTimeout(res, 400); });
+      setUploadPhase(4);
+      log('✅ 推送成功', 'ok');
+      if (r.preview_url) log('🔗 预览：' + r.preview_url);
+      showToast('推送成功！', 'ok');
+      setTimeout(function(){ setUploadPhase(0); }, 2500);
+    } else {
+      setUploadPhase(0);
+      log('❌ ' + (r.message || '推送失败'), 'error');
+    }
+  }
 }
 
 async function uploadAndProcess() {
