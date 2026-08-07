@@ -1352,31 +1352,86 @@ async function uploadAndProcess() {
     showToast('请先选择文件', 'error');
     return;
   }
-  
-  log('📤 开始处理上传的文档...');
-  
+  var btn = document.getElementById('btnRun');
+  btn.disabled = true;
+  btn.textContent = '⏳ 运行中...';
+  clearLog();
+  resetSecBtns();
+  state.preview_url = '';
+  state.html = '';
+  document.getElementById('previewCard').style.display = 'none';
+  var template_id = document.getElementById('template_id').value;
+  var account_id = document.getElementById('account_id').value;
+  var uploadTitle = document.getElementById('uploadTitle').value;
+
   try {
-    const r = await callAPI('upload', {
+    log('🔍 [1/4] 选题研究...');
+    setSecBtn('secResearch', 's-skip');
+    setPhase(1);
+    await new Promise(function(r){ setTimeout(r, 250); });
+    log('—— [1/4] 选题已跳过（文档导入模式）', 'skip');
+    setSecBtn('secResearch', 's-skip');
+
+    log('✍️ [2/4] 写作文章...');
+    setSecBtn('secWrite', 's-skip');
+    setPhase(2);
+    await new Promise(function(r){ setTimeout(r, 250); });
+    log('—— [2/4] 写作已跳过（文档导入模式）', 'skip');
+    setSecBtn('secWrite', 's-skip');
+
+    log('🎨 [3/4] 解析文档并排版...');
+    setSecBtn('secFormat', 's-active');
+    setPhase(3);
+    var r1 = await callAPI('upload', {
       content: state.uploadContent,
-      title: document.getElementById('uploadTitle').value,
-      template_id: document.getElementById('template_id').value,
-      account_id: document.getElementById('account_id').value
+      title: uploadTitle,
+      template_id: template_id,
+      account_id: account_id
     });
-    
-    if (r.status === 'ok') {
-      log('✅ 文档处理完成', 'ok');
-      log('📝 草稿已推送至公众号后台', 'ok');
-      if (r.preview_url) log('🔗 预览链接：' + r.preview_url);
-      showToast('文档处理完成！', 'ok');
-      state.preview_url = r.preview_url;
-      if (r.html) showPreview(r.html);
-    } else {
-      log('❌ 处理失败: ' + r.message, 'error');
-      showToast('处理失败', 'error');
+    if (r1.status !== 'ok') {
+      log('❌ [3/4] 排版失败：' + (r1.message || ''), 'error');
+      setSecBtn('secFormat', 's-error');
+      setPhase(0);
+      showToast('排版失败', 'error');
+      btn.disabled = false; btn.textContent = '⚡ 解析 → 排版 → 发布'; return;
     }
+    setSecBtn('secFormat', 's-done');
+    var len = r1.html ? r1.html.length : (r1.markdown ? r1.markdown.length : 0);
+    log('✅ [3/4] 排版完成（' + len + ' 字符）', 'ok');
+    state.html = r1.html || r1.markdown || '';
+    if (r1.html) showPreview(r1.html);
+
+    log('🚀 [4/4] 推送草稿到公众号后台...');
+    setSecBtn('secPublish', 's-active');
+    setPhase(4);
+    var r2 = await callAPI('publish', {
+      title: uploadTitle || '文档导入',
+      html: state.html,
+      account_id: account_id
+    });
+    if (r2.status !== 'ok') {
+      log('❌ [4/4] 推送失败：' + (r2.message || ''), 'error');
+      setSecBtn('secPublish', 's-error');
+      setPhase(0);
+      showToast('推送失败', 'error');
+      btn.disabled = false; btn.textContent = '⚡ 解析 → 排版 → 发布'; return;
+    }
+    setSecBtn('secPublish', 's-done');
+    setPhase(5);
+    state.preview_url = r2.preview_url || '';
+    log('✅ [4/4] 推送完成', 'ok');
+    log('🎉 全链路执行完成！请在公众号后台审核发布', 'ok');
+    showToast('草稿已推送，请去公众号后台审核发布', 'ok');
+    if (state.preview_url) setTimeout(function(){ window.open(state.preview_url, '_blank'); }, 1000);
+
   } catch(e) {
-    log('❌ 网络错误: ' + e.message, 'error');
+    log('❌ 网络错误：' + e.message, 'error');
+    setPhase(0);
     showToast('网络错误', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ 解析 → 排版 → 发布';
+    setTimeout(function(){ setPhase(0); }, 4000);
   }
 }
 
