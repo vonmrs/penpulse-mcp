@@ -154,6 +154,7 @@
   .log-line.ok { color: var(--success); }
   .log-line.error { color: var(--error); }
   .log-line.info { color: var(--accent); }
+  .log-line.skip { color: var(--text-muted); opacity: 0.55; }
   .log-line .ts { color: #4b5563; min-width: 55px; }
 
   .topics-grid {
@@ -576,6 +577,13 @@
     background: #ef4444;
     font-weight: 600;
   }
+  .btn-outline.s-skip {
+    border-color: #9ca3af;
+    color: #9ca3af;
+    background: transparent;
+    cursor: default;
+  }
+  .log-skip { color: #9ca3af; }
 </style>
 </head>
 <body>
