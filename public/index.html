@@ -418,6 +418,129 @@
   .step-icon { font-size: 18px; }
   /* Steps bar */
   .steps-title { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 0.5px; }
+
+  /* Pipeline running progress bar */
+  #pipelineProgress {
+    display: none;
+    margin-top: 16px;
+    margin-bottom: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+  }
+  .progress-phases {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: relative;
+  }
+  .progress-phase {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+  }
+  .phase-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    color: var(--text-muted);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .phase-dot.active {
+    border-color: var(--primary);
+    background: rgba(99,102,241,0.15);
+    color: var(--primary-hover);
+    box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
+    animation: phase-pulse 1.4s ease-in-out infinite;
+  }
+  .phase-dot.done {
+    border-color: var(--success);
+    background: rgba(16,185,129,0.15);
+    color: var(--success);
+  }
+  @keyframes phase-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(99,102,241,0.12); }
+    50% { box-shadow: 0 0 0 8px rgba(99,102,241,0.06); }
+  }
+  .phase-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: color 0.3s;
+  }
+  .phase-text.active { color: var(--primary-hover); }
+  .phase-text.done { color: var(--success); }
+  .phase-sub {
+    font-size: 11px;
+    color: #4b5563;
+    margin-top: 1px;
+  }
+  /* Connecting line between phases */
+  .phase-line {
+    flex: 0 0 24px;
+    height: 2px;
+    background: var(--border);
+    transition: background 0.4s;
+    margin: 0 2px;
+    align-self: center;
+  }
+  .phase-line.done { background: var(--success); }
+  /* Spinning animation for active dot */
+  .phase-dot.active::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+    animation: dot-blink 0.7s ease-in-out infinite alternate;
+  }
+  @keyframes dot-blink {
+    from { opacity: 0.4; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1.2); }
+  }
+  .progress-bar-wrap {
+    margin-top: 12px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .progress-msg {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 18px;
+  }
+  .progress-msg-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+    animation: dot-blink 0.7s ease-in-out infinite alternate;
+    flex-shrink: 0;
+  }
   /* Outline buttons */
   .btn-outline {
     background: transparent;
@@ -562,6 +685,43 @@
       </div>
 
       <!-- AI 模式选题结果 -->
+      
+      <!-- AI 全链路运行进度条（运行中显示） -->
+      <div id="pipelineProgress">
+        <div class="progress-phases">
+          <div class="progress-phase" id="prog1">
+            <div class="phase-dot" id="dot1">🔍</div>
+            <div>
+              <div class="phase-text" id="txt1">选题研究</div>
+              <div class="phase-sub" id="sub1">分析趋势中</div>
+            </div>
+          </div>
+          <div class="phase-line" id="line1"></div>
+          <div class="progress-phase" id="prog2">
+            <div class="phase-dot" id="dot2">✍️</div>
+            <div>
+              <div class="phase-text" id="txt2">写作排版</div>
+              <div class="phase-sub" id="sub2">生成草稿中</div>
+            </div>
+          </div>
+          <div class="phase-line" id="line2"></div>
+          <div class="progress-phase" id="prog3">
+            <div class="phase-dot" id="dot3">🚀</div>
+            <div>
+              <div class="phase-text" id="txt3">推送发布</div>
+              <div class="phase-sub" id="sub3">上传到后台</div>
+            </div>
+          </div>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progBarFill"></div>
+        </div>
+        <div class="progress-msg" id="progMsg">
+          <div class="progress-msg-dot"></div>
+          <span id="progMsgText">正在启动...</span>
+        </div>
+      </div>
+
       <div class="topics-grid" id="topicsGrid" style="display:none;"></div>
 
       
@@ -700,12 +860,14 @@ async function runStep(step) {
   if (step === 'research') {
     log('🔍 搜索选题...');
     setStep(1, 'active');
+    setPhase(1);
     const r = await callAPI('research', {
       keyword: document.getElementById('keyword').value,
       days: parseInt(document.getElementById('days').value)
     });
     if (r.status === 'ok') {
       log('✅ 找到 ' + r.topics.length + ' 条选题', 'ok');
+      setPhase(4); setTimeout(function(){ setPhase(0); }, 2500);
       r.topics.slice(0,6).forEach(function(t) { log('  · ' + t.title + '  [' + t.source + ' / ' + t.tag + ']'); });
       setStep(1, 'done');
     } else {
@@ -722,6 +884,8 @@ async function runStep(step) {
     clearLog();
     log('🚀 开始推送草稿...');
     setStep(5, 'active');
+    setPhase(3);
+    setPhase(4); setTimeout(function(){ setPhase(0); }, 2500);
     callAPI('publish', {
       draft_id: draftId,
       html: html,
@@ -754,8 +918,57 @@ async function runStep(step) {
   }
 }
 
+var _progTimer = null;
+function setPhase(n) {
+  // n: 0=idle, 1=active1, 2=active2, 3=active3, 4=done
+  var dots  = ['dot1','dot2','dot3'].map(function(id){ return document.getElementById(id); });
+  var txts  = ['txt1','txt2','txt3'].map(function(id){ return document.getElementById(id); });
+  var subs  = ['sub1','sub2','sub3'].map(function(id){ return document.getElementById(id); });
+  var lines = ['line1','line2'].map(function(id){ return document.getElementById(id); });
+  var phases = [
+    { dot:'🔍', txt:'选题研究', sub:'分析趋势中' },
+    { dot:'✍️',  txt:'写作排版', sub:'生成草稿中' },
+    { dot:'🚀',  txt:'推送发布', sub:'上传到后台' }
+  ];
+  for (var i = 0; i < 3; i++) {
+    dots[i].className = 'phase-dot';
+    txts[i].className = 'phase-text';
+  }
+  if (n === 0) {
+    document.getElementById('pipelineProgress').style.display = 'none';
+    return;
+  }
+  document.getElementById('pipelineProgress').style.display = '';
+  var pct = 0;
+  if (n <= 3) {
+    for (var j = 0; j < n-1; j++) {
+      dots[j].className = 'phase-dot done';
+      dots[j].textContent = '✓';
+      txts[j].className = 'phase-text done';
+      if (j < 2) lines[j].className = 'phase-line done';
+      pct += 33;
+    }
+    dots[n-1].className = 'phase-dot active';
+    txts[n-1].className = 'phase-text active';
+    subs[n-1].textContent = phases[n-1].sub;
+    pct += 10;
+    document.getElementById('progMsgText').textContent = '⏳ ' + phases[n-1].txt + '，请稍候...';
+  } else {
+    // done
+    for (var k = 0; k < 3; k++) {
+      dots[k].className = 'phase-dot done';
+      dots[k].textContent = '✓';
+      txts[k].className = 'phase-text done';
+      if (k < 2) lines[k].className = 'phase-line done';
+    }
+    pct = 100;
+    document.getElementById('progMsgText').textContent = '✅ 全链路执行完成';
+  }
+  document.getElementById('progBarFill').style.width = pct + '%';
+}
+
 async function runPipeline() {
-  const btn = document.getElementById('btnRun');
+  var btn = document.getElementById('btnRun');
   btn.disabled = true;
   btn.textContent = '⏳ 运行中...';
   clearLog();
@@ -766,8 +979,9 @@ async function runPipeline() {
   try {
     log('🚀 启动全链路...');
     setStep(1, 'active');
+    setPhase(1);
 
-    const r = await callAPI('pipeline', {
+    var r = await callAPI('pipeline', {
       keyword: document.getElementById('keyword').value,
       days: parseInt(document.getElementById('days').value),
       template_id: document.getElementById('template_id').value,
@@ -775,11 +989,12 @@ async function runPipeline() {
     });
 
     if (r.status === 'ok') {
-      setStep(1, 'done');
-      setStep(2, 'done');
-      setStep(3, 'done');
-      setStep(4, 'done');
-      setStep(5, 'done');
+      setPhase(2);
+      await new Promise(function(resolve){ setTimeout(resolve, 400); });
+      setPhase(3);
+      await new Promise(function(resolve){ setTimeout(resolve, 400); });
+      setPhase(4);
+      setStep(1,'done'); setStep(2,'done'); setStep(3,'done'); setStep(4,'done'); setStep(5,'done');
       state.draft_id = r.draft_id || '';
       state.preview_url = r.preview_url || '';
       log('✅ 选题：「' + r.topic + '」', 'ok');
@@ -791,15 +1006,18 @@ async function runPipeline() {
         setTimeout(function() { window.open(r.preview_url, '_blank'); }, 1500);
       }
     } else {
+      setPhase(0);
       log('❌ 失败: ' + (r.message || JSON.stringify(r)), 'error');
       showToast('执行失败: ' + (r.message || '未知错误'), 'error');
     }
   } catch(e) {
+    setPhase(0);
     log('❌ 网络错误: ' + e.message, 'error');
     showToast('网络错误', 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = '▶ 一键运行全链路';
+    setTimeout(function() { setPhase(0); }, 3000);
   }
 }
 
