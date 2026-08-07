@@ -702,7 +702,7 @@
 
 <!-- 操作按钮行 -->
       <div class="btn-row" id="actionButtons">
-        <button class="btn-primary" id="btnRun" onclick="runPipeline()">▶ 一键运行全链路</button>
+        <button class="btn-primary" id="btnRun">▶ 一键运行全链路</button>
         <!-- AI 链路次级操作 -->
         <div id="actionButtonsSecondary" style="display:flex;gap:8px;">
           <button class="btn-outline" onclick="runStep('research')" id="secResearch">🔍 只搜选题</button>
@@ -895,6 +895,18 @@ function switchMainTab(tab) {
   document.getElementById('actionButtonsSecondary').style.display = (tab === 'pipeline') ? '' : 'none';
   // Primary button
   if (tab === 'pipeline') {
+    document.getElementById('btnRun').textContent = '▶ 一键运行全链路';
+    document.getElementById('btnRun').onclick = runPipeline;
+  } else {
+    document.getElementById('btnRun').textContent = '⚡ 解析 → 排版 → 发布';
+    document.getElementById('btnRun').onclick = uploadAndProcess;
+  }
+}
+
+// 根据当前模式重置主按钮（切换模式时调用 + 初始化兜底）
+function initBtnRun() {
+  // 读取哪个 tab 处于 active 状态
+  if (document.getElementById('modeBtnPipeline').classList.contains('active')) {
     document.getElementById('btnRun').textContent = '▶ 一键运行全链路';
     document.getElementById('btnRun').onclick = runPipeline;
   } else {
