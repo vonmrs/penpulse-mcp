@@ -1045,27 +1045,6 @@ export default async function handler(req, res) {
       case 'parse':
         // 解析：直接返回 markdown（content 就是 markdown）
         return res.status(200).json({ status: 'ok', markdown: params.content || '', title: params.title || '' });
-      case 'write':
-        // 写作：先搜索选题 → 取第一条 → 格式化为 HTML
-        var researchR = await researchModule.default({ keyword: params.keyword, days: params.days });
-        if (researchR.status !== 'ok' || !researchR.topics || researchR.topics.length === 0) {
-          return res.status(200).json({ status: 'error', message: '选题搜索失败：' + (researchR.message || '未找到相关选题') });
-        }
-        var topTopic = researchR.topics[0];
-        var markdown = topTopic.title + '\n\n' + (topTopic.summary || '');
-        var formatR = await formatModule.default({ markdown: markdown, template_id: params.template_id });
-        if (formatR.status !== 'ok') {
-          return res.status(200).json({ status: 'error', message: '排版失败：' + (formatR.message || '') });
-        }
-        var publishR = await publishModule.default({ title: topTopic.title, html: formatR.html, account_id: params.account_id });
-        return res.status(200).json({
-          status: 'ok',
-          topic: topTopic.title,
-          html: formatR.html,
-          html_length: formatR.html_length,
-          draft_id: publishR.draft_id || '',
-          preview_url: publishR.preview_url || '',
-        });
       case 'upload':
         return res.status(200).json(await uploadModule.default(params));
       case 'pipeline':

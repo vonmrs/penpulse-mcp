@@ -675,24 +675,17 @@
 <!-- 操作按钮行 -->
       <div class="btn-row" id="actionButtons">
         <button class="btn-primary" id="btnRun" onclick="runPipeline()">▶ 一键运行全链路</button>
-        <button class="btn-secondary" onclick="clearLog()">🗑️ 清空</button>
-        <!-- 次级操作：仅 AI 全链路模式显示 -->
-        <div id="actionButtonsSecondary" style="display:flex;gap:8px;margin-left:4px;">
+        <!-- AI 链路次级操作 -->
+        <div id="actionButtonsSecondary" style="display:flex;gap:8px;">
           <button class="btn-outline" onclick="runStep('research')">🔍 只搜选题</button>
           <button class="btn-outline" onclick="runStep('write')">📝 写文章</button>
-          <button class="btn-outline" onclick="runStep('format')">🎨 只排版</button>
-          <button class="btn-outline" onclick="runStep('publish')">🚀 只推送</button>
         </div>
-      </div>
-
-      <!-- 文档导入次级操作按钮（解析模式专用） -->
-      <div id="actionButtonsUpload" style="display:none; margin-top:12px;">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;letter-spacing:0.5px;">文档模式 · 单独执行</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-outline" onclick="runUploadStep('parse')">📄 只解析</button>
+        <!-- 文档导入次级操作（位于主按钮和清空之间） -->
+        <div id="actionButtonsUpload" style="display:flex;gap:8px;">
           <button class="btn-outline" onclick="runUploadStep('format')">🎨 只排版</button>
           <button class="btn-outline" onclick="runUploadStep('publish')">🚀 只推送</button>
         </div>
+        <button class="btn-secondary" onclick="clearLog()">🗑️ 清空</button>
       </div>
 
       <!-- AI 模式选题结果 -->
@@ -845,7 +838,10 @@ function switchMainTab(tab) {
   document.getElementById('groupUploadTitle').style.display = (tab === 'upload') ? '' : 'none';
   // Upload-mode preview: preview + summary
   document.getElementById('groupUploadPreview').style.display = (tab === 'upload') ? '' : 'none';
-  document.getElementById('actionButtonsUpload').style.display = (tab === 'upload') ? '' : 'none';
+  var aau = document.getElementById('actionButtonsUpload');
+  aau.style.display = (tab === 'upload') ? '' : 'none';
+  var aas = document.getElementById('actionButtonsSecondary');
+  aas.style.display = (tab === 'pipeline') ? '' : 'none';
   document.getElementById('groupUploadSummary').style.display = (tab === 'upload') ? '' : 'none';
   // Secondary actions (只搜选题/只排版/只推送) in pipeline mode only
   document.getElementById('actionButtonsSecondary').style.display = (tab === 'pipeline') ? '' : 'none';
