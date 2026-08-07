@@ -685,7 +685,6 @@
           <button class="btn-outline" onclick="runUploadStep('format')">🎨 只排版</button>
           <button class="btn-outline" onclick="runUploadStep('publish')">🚀 只推送</button>
         </div>
-        <button class="btn-secondary" onclick="clearLog()">🗑️ 清空</button>
       </div>
 
       <!-- AI 模式选题结果 -->
@@ -734,7 +733,10 @@
 
   <!-- Log -->
   <div class="card">
-    <div class="card-title">📋 执行日志</div>
+    <div class="card-title">
+      <span>📋 执行日志</span>
+      <button class="btn-secondary" onclick="clearLog()" style="padding:3px 10px;font-size:12px;">🗑️ 清空</button>
+    </div>
     <div class="log-area" id="logArea">
       <div class="log-line info"><span class="ts">[等待中]</span> 点击「一键运行」开始</div>
     </div>
@@ -919,7 +921,6 @@ async function runStep(step) {
       showToast('请先完成「只排版」生成草稿', 'error');
       return;
     }
-    clearLog();
     log('🚀 开始推送草稿...');
     setStep(5, 'active');
     setPhase(3);
@@ -1184,7 +1185,6 @@ async function runUploadStep(step) {
     return;
   }
   if (step === 'parse') {
-    clearLog();
     log('📄 开始解析文档...');
     setUploadPhase(1);
     const r = await callAPI('parse', { content: state.uploadContent });
@@ -1198,7 +1198,6 @@ async function runUploadStep(step) {
       log('❌ ' + (r.message || '解析失败'), 'error');
     }
   } else if (step === 'format') {
-    clearLog();
     log('🎨 开始排版...');
     setUploadPhase(1);
     const r = await callAPI('format', {
@@ -1222,7 +1221,6 @@ async function runUploadStep(step) {
       showToast('请先执行「只排版」生成草稿', 'error');
       return;
     }
-    clearLog();
     log('🚀 开始推送草稿...');
     setUploadPhase(1);
     const r = await callAPI('publish', {
@@ -1251,7 +1249,6 @@ async function uploadAndProcess() {
     return;
   }
   
-  clearLog();
   log('📤 开始处理上传的文档...');
   
   try {
