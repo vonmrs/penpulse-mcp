@@ -702,7 +702,8 @@
 
 <!-- 操作按钮行 -->
       <div class="btn-row" id="actionButtons">
-        <button class="btn-primary" id="btnRun" onclick="doRun()">▶ 一键运行全链路</button>
+        <button id="btnRunPipeline" class="btn-primary" onclick="runPipeline()">▶ 一键运行全链路</button>
+        <button id="btnRunUpload" class="btn-primary" onclick="uploadAndProcess()" style="display:none">⚡ 解析 → 排版 → 发布</button>
         <!-- AI 链路次级操作 -->
         <div id="actionButtonsSecondary" style="display:flex;gap:8px;">
           <button class="btn-outline" onclick="runStep('research')" id="secResearch">🔍 只搜选题</button>
@@ -895,40 +896,22 @@ function switchMainTab(tab) {
   document.getElementById('actionButtonsSecondary').style.display = (tab === 'pipeline') ? '' : 'none';
   // Primary button
   if (tab === 'pipeline') {
-    document.getElementById('btnRun').textContent = '▶ 一键运行全链路';
-    document.getElementById('btnRun').onclick = doRun;
-  } else {
-    document.getElementById('btnRun').textContent = '⚡ 解析 → 排版 → 发布';
-    document.getElementById('btnRun').onclick = doRun;
+    document.getElementById('btnRunPipeline').style.display = (tab === 'pipeline') ? '' : 'none';
+    document.getElementById('btnRunUpload').style.display = (tab === 'upload') ? '' : 'none';
+    document.getElementById('btnRunPipeline').style.display = 'none';
   }
 }
 
 // 总入口：读取当前模式，决定走哪条链路
-function doRun() {
-  if (document.getElementById('modeBtnPipeline').classList.contains('active')) {
-    runPipeline();
-  } else {
-    uploadAndProcess();
-  }
-}
 
-function doRun() {
-  if (document.getElementById('modeBtnPipeline').classList.contains('active')) {
-    runPipeline();
-  } else {
-    uploadAndProcess();
-  }
-}
 
 // 根据当前模式重置主按钮（切换模式时调用 + 初始化兜底）
 function initBtnRun() {
   // 读取哪个 tab 处于 active 状态
   if (document.getElementById('modeBtnPipeline').classList.contains('active')) {
-    document.getElementById('btnRun').textContent = '▶ 一键运行全链路';
-    document.getElementById('btnRun').onclick = doRun;
-  } else {
-    document.getElementById('btnRun').textContent = '⚡ 解析 → 排版 → 发布';
-    document.getElementById('btnRun').onclick = doRun;
+    document.getElementById('btnRunPipeline').style.display = (tab === 'pipeline') ? '' : 'none';
+    document.getElementById('btnRunUpload').style.display = (tab === 'upload') ? '' : 'none';
+    document.getElementById('btnRunPipeline').style.display = 'none';
   }
 }
 
