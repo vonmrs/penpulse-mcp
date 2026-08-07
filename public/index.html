@@ -1084,7 +1084,7 @@ function resetSecBtns() {
 }
 
 async function runPipeline() {
-  var btn = document.getElementById('btnRun');
+  var btn = document.getElementById('btnRunPipeline');
   btn.disabled = true;
   btn.textContent = '\u23F3 运行中...';
   clearLog();
@@ -1369,7 +1369,7 @@ async function uploadAndProcess() {
     showToast('请先选择文件', 'error');
     return;
   }
-  var btn = document.getElementById('btnRun');
+  var btn = document.getElementById('btnRunPipeline');
   btn.disabled = true;
   btn.textContent = '⏳ 运行中...';
   clearLog();
