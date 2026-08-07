@@ -413,29 +413,34 @@
     <p class="subtitle">选题 · AI 写作 · 智能排版 · 封面生成 · 自动发布，全链路自动化</p>
   </div>
 
-  <!-- AI Pipeline Panel -->
-  <!-- 统一模式 + 共享模板 -->
+  <!-- 模式切换卡（独立卡片，上层） -->
+  <div class="card" style="padding: 12px 20px;">
+    <div class="mode-switcher" style="margin-bottom:0;">
+      <div class="mode-btn active" id="modeBtnPipeline" onclick="switchMainTab('pipeline')">
+        <span class="mode-icon">🤖</span><span>AI 全链路</span>
+      </div>
+      <div class="mode-btn" id="modeBtnUpload" onclick="switchMainTab('upload')">
+        <span class="mode-icon">📄</span><span>文档导入</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 流水线步骤（AI 模式专用，横铺，tab-panel 外层） -->
+  <div class="tab-panel" id="panelSteps" style="display:none;">
+    <div class="card" style="padding: 20px 28px;">
+      <div class="pipeline-steps" style="display:flex;gap:0;">
+        <div class="step active" id="step1"><span class="step-icon">🔍</span><span>选题</span></div>
+        <div class="step" id="step2"><span class="step-icon">✍️</span><span>写作</span></div>
+        <div class="step" id="step3"><span class="step-icon">🎨</span><span>排版</span></div>
+        <div class="step" id="step4"><span class="step-icon">🖼️</span><span>封面</span></div>
+        <div class="step" id="step5"><span class="step-icon">🚀</span><span>发布</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主表单卡 -->
   <div class="tab-panel active" id="panelPipeline">
     <div class="card">
-      <!-- 模式切换 -->
-      <div class="mode-switcher">
-        <div class="mode-btn active" id="modeBtnPipeline" onclick="switchMainTab('pipeline')">
-          <span class="mode-icon">🤖</span><span>AI 全链路</span>
-        </div>
-        <div class="mode-btn" id="modeBtnUpload" onclick="switchMainTab('upload')">
-          <span class="mode-icon">📄</span><span>文档导入</span>
-        </div>
-      </div>
-
-      <!-- 流水线步骤（AI 模式专用） -->
-      <div class="pipeline-steps" id="pipelineSteps" style="display:flex;">
-        <div class="step active" id="step1"><span class="step-icon">🔍</span>选题</div>
-        <div class="step" id="step2"><span class="step-icon">✍️</span>写作</div>
-        <div class="step" id="step3"><span class="step-icon">🎨</span>排版</div>
-        <div class="step" id="step4"><span class="step-icon">🖼️</span>封面</div>
-        <div class="step" id="step5"><span class="step-icon">🚀</span>发布</div>
-      </div>
-
       <div class="form-grid">
         <!-- AI 全链路 专属输入 -->
         <div class="form-group" id="groupKeyword">
@@ -453,7 +458,7 @@
         </div>
 
         <!-- 文档导入 专属输入 -->
-        <div class="form-group" id="groupUpload" style="display:none;">
+        <div class="form-group" id="groupUpload">
           <label>上传文档</label>
           <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
             <div class="icon" id="uploadZoneIcon">📄</div>
@@ -462,7 +467,7 @@
           </div>
           <input type="file" id="fileInput" accept=".docx,.md,.txt" onchange="handleFileSelect(this)" style="display:none;">
         </div>
-        <div class="form-group" id="groupUploadTitle" style="display:none;">
+        <div class="form-group" id="groupUploadTitle">
           <label>文章标题（可选）</label>
           <input type="text" id="uploadTitle" placeholder="留空自动从内容提取">
         </div>
@@ -504,18 +509,23 @@
         <div id="actionButtonsSecondary" style="display:flex;gap:8px;margin-left:4px;">
           <button class="btn-outline" onclick="runStep('research')">🔍 只搜选题</button>
           <button class="btn-outline" onclick="runStep('format')">🎨 只排版</button>
+          <button class="btn-outline" onclick="runStep('publish')">🚀 只推送</button>
         </div>
       </div>
 
       <!-- AI 模式选题结果 -->
       <div class="topics-grid" id="topicsGrid" style="display:none;"></div>
 
-      <!-- 文档导入预览 -->
-      <div id="uploadPreview" style="display:none;">
-        <div style="margin-top:16px;">
-          <label>解析预览</label>
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;color:var(--text-muted);max-height:200px;overflow-y:auto;line-height:1.6;" id="uploadPreviewContent"></div>
-        </div>
+      <!-- 解析预览（文档导入模式） -->
+      <div class="form-group" id="groupUploadPreview" style="display:none;">
+        <label>📝 解析预览</label>
+        <div id="uploadPreviewContent" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;color:var(--text-muted);max-height:200px;overflow-y:auto;line-height:1.6;white-space:pre-wrap;word-break:break-all;"></div>
+      </div>
+
+      <!-- 文章摘要（文档导入模式，上传区右侧） -->
+      <div class="form-group" id="groupUploadSummary" style="display:none;">
+        <label>📌 文章摘要</label>
+        <textarea id="uploadSummary" rows="5" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13px;color:var(--text-muted);resize:vertical;line-height:1.6;" placeholder="上传文档后自动提取摘要，显示在此处"></textarea>
       </div>
     </div>
   </div>
@@ -611,27 +621,31 @@ function clearLog() {
 }
 
 function switchMainTab(tab) {
-  // Toggle mode buttons
+  // Toggle mode buttons active state
   document.getElementById('modeBtnPipeline').classList.toggle('active', tab === 'pipeline');
   document.getElementById('modeBtnUpload').classList.toggle('active', tab === 'upload');
-  // Show/hide pipeline steps
-  document.getElementById('pipelineSteps').style.display = (tab === 'pipeline') ? '' : 'none';
-  // Show/hide AI-mode fields
+  // Panel: show pipeline steps bar only in AI mode
+  document.getElementById('panelSteps').style.display = (tab === 'pipeline') ? '' : 'none';
+  // Panel: main form always visible
+  document.getElementById('panelPipeline').style.display = '';
+  // AI-mode fields: keyword + days
   document.getElementById('groupKeyword').style.display = (tab === 'pipeline') ? '' : 'none';
   document.getElementById('groupDays').style.display = (tab === 'pipeline') ? '' : 'none';
+  // Upload-mode fields: upload zone + title
   document.getElementById('groupUpload').style.display = (tab === 'upload') ? '' : 'none';
   document.getElementById('groupUploadTitle').style.display = (tab === 'upload') ? '' : 'none';
-  // Show/hide pipeline-only secondary actions
+  // Upload-mode preview: preview + summary
+  document.getElementById('groupUploadPreview').style.display = (tab === 'upload') ? '' : 'none';
+  document.getElementById('groupUploadSummary').style.display = (tab === 'upload') ? '' : 'none';
+  // Secondary actions (只搜选题/只排版/只推送) in pipeline mode only
   document.getElementById('actionButtonsSecondary').style.display = (tab === 'pipeline') ? '' : 'none';
-  // Switch primary action button
+  // Primary button
   if (tab === 'pipeline') {
     document.getElementById('btnRun').textContent = '▶ 一键运行全链路';
     document.getElementById('btnRun').onclick = runPipeline;
-    document.getElementById('btnRun').id = 'btnRun';
   } else {
     document.getElementById('btnRun').textContent = '⚡ 解析 → 排版 → 发布';
     document.getElementById('btnRun').onclick = uploadAndProcess;
-    document.getElementById('btnRun').id = 'btnRun';
   }
 }
 
@@ -659,6 +673,31 @@ async function runStep(step) {
     } else {
       log('❌ ' + (r.message || '搜索失败'), 'error');
     }
+  } else if (step === 'publish') {
+    // 只推送：需要先有草稿（html + title + account_id）
+    var draftId = state.draft_id;
+    var html = state.html;
+    if (!draftId && !html) {
+      showToast('请先完成「只排版」生成草稿', 'error');
+      return;
+    }
+    clearLog();
+    log('🚀 开始推送草稿...');
+    setStep(5, 'active');
+    callAPI('publish', {
+      draft_id: draftId,
+      html: html,
+      account_id: document.getElementById('account_id').value
+    }).then(function(r) {
+      if (r.status === 'ok') {
+        log('✅ 推送成功', 'ok');
+        if (r.preview_url) log('🔗 预览: ' + r.preview_url);
+        showToast('推送成功', 'ok');
+        setStep(5, 'done');
+      } else {
+        log('❌ ' + (r.message || '推送失败'), 'error');
+      }
+    }).catch(function(e) { log('❌ 网络错误: ' + e.message, 'error'); });
   } else if (step === 'format') {
     log('🎨 排版中...');
     setStep(3, 'active');
@@ -762,7 +801,7 @@ function handleFileSelect(input) {
     if (zoneIcon) zoneIcon.textContent = '✅';
     if (zoneText) zoneText.textContent = file.name;
     if (zoneHint) zoneHint.textContent = '点击可重新选择文件';
-    document.getElementById('uploadPreview').style.display = 'block';
+    document.getElementById('groupUploadPreview').style.display = '';
     if (isDocx) {
       var previewEl = document.getElementById('uploadPreviewContent');
       previewEl.innerHTML = '<span style="color:var(--primary);font-size:13px;line-height:1.8;">✅ 文件已就绪，将在服务器端解析为可读文本</span>';
@@ -783,7 +822,7 @@ function previewUpload() {
     showToast('请先选择文件', 'error');
     return;
   }
-  document.getElementById('uploadPreview').style.display = 'block';
+  document.getElementById('groupUploadPreview').style.display = '';
   var previewText2 = state.uploadContent.substring(0, 1000);
   if (state.uploadContent.length > 1000) previewText2 = previewText2 + '\x0a\x0a[...]（后续内容将在服务器端处理）';
   document.getElementById('uploadPreviewContent').textContent = previewText2;
