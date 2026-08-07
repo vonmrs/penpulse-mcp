@@ -76,6 +76,7 @@
     color: var(--text);
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
   }
 
@@ -248,7 +249,7 @@
     transition: all 0.2s; margin-left: 8px; white-space: nowrap;
   }
   .gallery-btn:hover { background: rgba(99,102,241,0.25); border-color: #6366f1; }
-  .gallery-label-row { display: flex; align-items: center; margin-bottom: 6px; }
+  .gallery-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
   .gallery-label-row label { margin-bottom: 0; }
 
   .gallery-modal {
@@ -614,7 +615,7 @@
           </select>
         </div>
 
-        <!-- 文档导入 专属输入 -->
+        <!-- 文档导入：左上传 右标题+摘要 -->
         <div class="form-group" id="groupUpload" style="display:none;">
           <label>上传文档</label>
           <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
@@ -627,18 +628,17 @@
         <div class="form-group" id="groupUploadTitle" style="display:none;">
           <label>文章标题（可选）</label>
           <input type="text" id="uploadTitle" placeholder="留空自动从内容提取">
+          <!-- 文章摘要（紧跟标题下方） -->
+          <div style="margin-top:12px;">
+            <label style="font-size:13px;color:var(--text-muted);margin-bottom:4px;display:block;">📌 文章摘要</label>
+            <textarea id="uploadSummary" rows="3" class="textarea-style" placeholder="上传文档后自动提取摘要" style="width:100%;resize:vertical;"></textarea>
+          </div>
         </div>
 
         <!-- 解析预览（文档导入模式，满宽） -->
         <div class="form-group full" id="groupUploadPreview" style="display:none;">
           <label>📝 解析预览</label>
           <div id="uploadPreviewContent" class="textarea-style"></div>
-        </div>
-
-        <!-- 文章摘要（文档导入模式，满宽） -->
-        <div class="form-group full" id="groupUploadSummary" style="display:none;">
-          <label>📌 文章摘要</label>
-          <textarea id="uploadSummary" rows="4" class="textarea-style" placeholder="上传文档后自动提取摘要，显示在此处"></textarea>
         </div>
 
         <!-- 共享模板选择（满宽） -->
